@@ -4,6 +4,7 @@ using lion_force_be.DBContext;
 using lion_force_be.Services;
 using lion_force_be.Services.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
@@ -31,6 +32,7 @@ builder.Services.AddSingleton<JwtTokenService>();
 builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
 {
+    options.SaveToken = true;
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,
@@ -43,17 +45,27 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
     };
 
 });
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("NotStudent", policy =>
+        policy.RequireAssertion(context =>
+            !context.User.IsInRole("Student")));
+    options.AddPolicy("AllRoles", policy =>
+        policy.RequireAuthenticatedUser());
+});
 builder.Services.AddScoped<UserService>();
+
 var app = builder.Build();
+
+
+app.UseHttpsRedirection();
+app.UseAuthentication();
+app.UseAuthorization();
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-
-app.UseHttpsRedirection();
-app.UseAuthentication();
-app.UseAuthorization();
 app.MapControllers();
 app.MapGet("/", () => "The server is running here");
 app.Run();
