@@ -64,6 +64,12 @@ public sealed class DbContextLF : DbContext
     {
       tb.Property(u => u.Name).HasColumnType("varchar(20)");
       tb.Property(u => u.LastName).HasColumnType("varchar(20)");
+      tb.HasIndex(u => u.DNI).IsUnique();
+      tb.Property(u => u.BirthDate).HasColumnType("datetime(0)");
+      tb.HasOne(u => u.Belt).WithMany(b => b.Users).HasForeignKey(u => u.BeltId);
+      tb.HasOne(u => u.Role).WithMany(r => r.Users).HasForeignKey(u => u.RoleId);
+      tb.HasOne(u => u.Academy).WithMany(a => a.Users).HasForeignKey(u => u.AcademyId);
+      tb.HasMany(u => u.UserServices).WithOne(us => us.User).HasForeignKey(us => us.UserId);
     });
   }
 }
