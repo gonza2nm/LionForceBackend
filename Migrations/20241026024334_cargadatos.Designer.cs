@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using lion_force_be.DBContext;
 
@@ -11,9 +12,11 @@ using lion_force_be.DBContext;
 namespace lion_force_be.Migrations
 {
     [DbContext(typeof(DbContextLF))]
-    partial class DbContextLFModelSnapshot : ModelSnapshot
+    [Migration("20241026024334_cargadatos")]
+    partial class cargadatos
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

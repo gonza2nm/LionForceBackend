@@ -70,6 +70,18 @@ public sealed class DbContextLF : DbContext
       tb.HasOne(u => u.Role).WithMany(r => r.Users).HasForeignKey(u => u.RoleId);
       tb.HasOne(u => u.Academy).WithMany(a => a.Users).HasForeignKey(u => u.AcademyId);
       tb.HasMany(u => u.UserServices).WithOne(us => us.User).HasForeignKey(us => us.UserId);
+      tb.HasOne(u => u.Belt).WithMany(b => b.Users).HasForeignKey(u => u.BeltId);
+      tb.HasData(
+          new User { Id = 1, Name = "Gonzalo", LastName = "Mansilla", DNI = "44523501", BirthDate = new DateTime(2003, 1, 11), BeltId = 11, RoleId = 1, AcademyId = 1 }
+      );
+    });
+    builder.Entity<Academy>(tb =>
+    {
+      tb.Property(a => a.Name).HasColumnType("varchar(50)");
+      tb.HasMany(a => a.Users).WithOne(u => u.Academy).HasForeignKey(u => u.AcademyId);
+      tb.HasData(
+        new Academy { Id = 1, Name = "Lion Force" }
+      );
     });
   }
 }
