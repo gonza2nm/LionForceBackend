@@ -317,6 +317,10 @@ namespace lion_force_be.Migrations
                         .IsRequired()
                         .HasColumnType("varchar(20)");
 
+                    b.Property<string>("Password")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
                     b.Property<int>("RoleId")
                         .HasColumnType("int");
 
@@ -343,6 +347,7 @@ namespace lion_force_be.Migrations
                             DNI = "44523501",
                             LastName = "Mansilla",
                             Name = "Gonzalo",
+                            Password = "admin",
                             RoleId = 1
                         });
                 });

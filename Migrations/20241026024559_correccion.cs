@@ -5,7 +5,7 @@
 namespace lion_force_be.Migrations
 {
     /// <inheritdoc />
-    public partial class correccion : Migration
+    public partial class Correccion : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

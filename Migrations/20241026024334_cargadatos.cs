@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace lion_force_be.Migrations
 {
     /// <inheritdoc />
-    public partial class cargadatos : Migration
+    public partial class Cargadatos : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

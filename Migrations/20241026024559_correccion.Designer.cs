@@ -13,7 +13,7 @@ namespace lion_force_be.Migrations
 {
     [DbContext(typeof(DbContextLF))]
     [Migration("20241026024559_correccion")]
-    partial class correccion
+    partial class Correccion
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

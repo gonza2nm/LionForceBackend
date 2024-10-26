@@ -12,8 +12,8 @@ using lion_force_be.DBContext;
 namespace lion_force_be.Migrations
 {
     [DbContext(typeof(DbContextLF))]
-    [Migration("20241026024334_cargadatos")]
-    partial class Cargadatos
+    [Migration("20241026144319_userpassword")]
+    partial class Userpassword
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -320,6 +320,11 @@ namespace lion_force_be.Migrations
                         .IsRequired()
                         .HasColumnType("varchar(20)");
 
+                    b.Property<string>("Password")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("varchar(16)");
+
                     b.Property<int>("RoleId")
                         .HasColumnType("int");
 
@@ -346,6 +351,7 @@ namespace lion_force_be.Migrations
                             DNI = "44523501",
                             LastName = "Mansilla",
                             Name = "Gonzalo",
+                            Password = "admin",
                             RoleId = 1
                         });
                 });

@@ -72,7 +72,7 @@ public sealed class DbContextLF : DbContext
       tb.HasMany(u => u.UserServices).WithOne(us => us.User).HasForeignKey(us => us.UserId);
       tb.HasOne(u => u.Belt).WithMany(b => b.Users).HasForeignKey(u => u.BeltId);
       tb.HasData(
-          new User { Id = 1, Name = "Gonzalo", LastName = "Mansilla", DNI = "44523501", BirthDate = new DateTime(2003, 1, 11), BeltId = 11, RoleId = 1, AcademyId = 1 }
+          new User { Id = 1, Name = "Gonzalo", LastName = "Mansilla", DNI = "44523501", BirthDate = new DateTime(2003, 1, 11), Password = "admin", BeltId = 11, RoleId = 1, AcademyId = 1 }
       );
     });
     builder.Entity<Academy>(tb =>
