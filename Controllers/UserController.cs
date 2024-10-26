@@ -1,4 +1,5 @@
 using lion_force_be.DBContext;
+using lion_force_be.DTOs;
 using lion_force_be.Models;
 using lion_force_be.Services;
 using lion_force_be.Services.Authentication;
@@ -17,29 +18,29 @@ public class UserController(UserService userService, JwtTokenService authService
 
 
   [HttpPost]
-  public async Task<IActionResult> Login(User userBody)
+  public async Task<ActionResult<ResponseToken>> Login(UserRequestDTO userBody)
   {
+    var res = new ResponseToken { Token = null, Error = null };
     if (!ModelState.IsValid || userBody.DNI == String.Empty || userBody.Password == String.Empty)
     {
-      return StatusCode(StatusCodes.Status400BadRequest, "su solicitud fallo");
+      res.UpdateValues(null, "Solicitud mal armada");
+      return StatusCode(StatusCodes.Status400BadRequest, res);
+    }
+
+    var result = await _userService.Auth(userBody.DNI, userBody.Password);
+    if (result)
+    {
+      Console.WriteLine("se encontro el usuario");
+      var user = await _dbContext.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.DNI == userBody.DNI);
+      var token = _authService.GenerateToken(user.DNI, user.Name, user.Role.Name);
+      res.UpdateValues(token, null);
+      return StatusCode(StatusCodes.Status200OK, res);
     }
     else
     {
-      var res = await _userService.Auth(userBody.DNI, userBody.Password);
-      if (res)
-      {
-        var user = await _dbContext.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.DNI == userBody.DNI && u.Password == userBody.Password);
-        if (user != null)
-        {
-          var token = _authService.GenerateToken(user.DNI, user.Name, user.Role.Name);
-          return StatusCode(StatusCodes.Status200OK, token);
-        }
-        return StatusCode(StatusCodes.Status404NotFound, "no se encontro el usuario");
-      }
-      else
-      {
-        return StatusCode(StatusCodes.Status404NotFound, "no se encontro el usuario");
-      }
+      Console.WriteLine("NO se encontro el usuario");
+      res.UpdateValues(null, "Usuario o contraseña incorrecta");
+      return StatusCode(StatusCodes.Status404NotFound, res);
     }
   }
 
