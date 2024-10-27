@@ -1,14 +1,86 @@
+using AutoMapper;
 using lion_force_be.DBContext;
+using lion_force_be.DTOs;
 using lion_force_be.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace lion_force_be.Services;
 
-public class UserService(DbContextLF dbContext)
+public class UserService(DbContextLF dbContext, IMapper mapper)
 {
   private readonly DbContextLF _dbContext = dbContext;
   private readonly PasswordHasher<User> _passwordHasher = new PasswordHasher<User>();
+  private readonly IMapper _mapper = mapper;
+
+  public async Task<ResponseOne<UserDTO>> Add(UserRequestDTO user, string userRequestRol)
+  {
+    var res = new ResponseOne<UserDTO> { Status = "", Message = "", Data = null, Error = null };
+    using var transaction = await _dbContext.Database.BeginTransactionAsync();
+    try
+    {
+      Console.WriteLine("entro al try catch");
+      var userExist = await _dbContext.Users.AnyAsync(u => u.DNI == user.DNI);
+      if (!userExist)
+      {
+        Console.WriteLine("No existe usuario con ese id");
+        var userDB = _mapper.Map<User>(user);
+        userDB.Password = EncryptPassword(userDB, user.Password);
+        if (userRequestRol.Equals("Admin"))
+        {
+          Console.WriteLine("Rol de admin");
+          await _dbContext.Users.AddAsync(userDB);
+          await _dbContext.SaveChangesAsync();
+          await transaction.CommitAsync();
+          var userDTO = _mapper.Map<UserDTO>(user);
+          res.UpdateValues("201", "User created succesfully", userDTO, null);
+          return res;
+        }
+        else if (userRequestRol.Equals("Supervisor") || userRequestRol.Equals("Instructor"))
+        {
+          Console.WriteLine("Rol de supervisor o instructor");
+          if (userDB.RoleId == 1 || userDB.RoleId == 2)
+          {
+            Console.WriteLine("intento crear un admin o supervisor sin permiso");
+            await transaction.RollbackAsync();
+            res.UpdateValues("403", "No tiene permisos para crear un usuario administrador o supervisor", null, "No tiene permisos suficientes");
+            return res;
+          }
+          await _dbContext.Users.AddAsync(userDB);
+          await _dbContext.SaveChangesAsync();
+          await transaction.CommitAsync();
+          var userDTO = _mapper.Map<UserDTO>(user);
+          res.UpdateValues("201", "User created succesfully", userDTO, null);
+          return res;
+        }
+        else
+        {
+          Console.WriteLine("Eror en los roles, ya que se envio de tipo usuario");
+          res.UpdateValues("400", "Error con los roles", null, "No se identifico correctamente el rol a pesar de todos los filtros");
+          return res;
+        }
+      }
+      else
+      {
+        Console.WriteLine("El usuario existe");
+        res.UpdateValues("409", "Ya existe un usuario con ese dni", null, "Conflict");
+        return res;
+      }
+    }
+    catch (Exception ex)
+    {
+
+      res.UpdateValues("500", "Ocurrio un Eror interno", null, ex.Message);
+      return res;
+    }
+
+
+  }
+
+
+
+
+
   public async Task<User?> Auth(string dni, string password)
   {
     try
@@ -66,8 +138,7 @@ public class UserService(DbContextLF dbContext)
     }
     catch (Exception ex)
     {
-      Console.WriteLine(ex.Message);
-      res.UpdateValues("500", "Internal Server Error", null, "Internal Server Error");
+      res.UpdateValues("500", "Internal Server Error", null, ex.Message);
       return res;
     }
   }

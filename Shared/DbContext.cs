@@ -71,12 +71,6 @@ public sealed class DbContextLF : DbContext
       tb.HasOne(u => u.Academy).WithMany(a => a.Users).HasForeignKey(u => u.AcademyId);
       tb.HasMany(u => u.UserServices).WithOne(us => us.User).HasForeignKey(us => us.UserId);
       tb.HasOne(u => u.Belt).WithMany(b => b.Users).HasForeignKey(u => u.BeltId);
-      tb.HasData(
-          new User { Id = 1, Name = "Gonzalo", LastName = "Mansilla", DNI = "44523501", BirthDate = new DateTime(2003, 1, 11), Password = "admin", BeltId = 11, RoleId = 1, AcademyId = 1 },
-          new User { Id = 2, Name = "Ignacio", LastName = "Campos", DNI = "12345678", BirthDate = new DateTime(2002, 8, 26), Password = "nacho123", BeltId = 13, RoleId = 2, AcademyId = 1 },
-          new User { Id = 3, Name = "Emilse", LastName = "Ojeda", DNI = "12345679", BirthDate = new DateTime(2000, 8, 26), Password = "emi123", BeltId = 12, RoleId = 3, AcademyId = 1 },
-          new User { Id = 4, Name = "Juan Pablo", LastName = "Hernandez", DNI = "12345677", BirthDate = new DateTime(2002, 10, 02), Password = "juanpi123", BeltId = 1, RoleId = 4, AcademyId = 1 }
-      );
     });
     builder.Entity<Academy>(tb =>
     {
