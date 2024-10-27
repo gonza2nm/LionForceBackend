@@ -4,7 +4,6 @@ using lion_force_be.DBContext;
 using lion_force_be.Services;
 using lion_force_be.Services.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
@@ -52,6 +51,8 @@ builder.Services.AddAuthorization(options =>
             !context.User.IsInRole("Student")));
     options.AddPolicy("AllRoles", policy =>
         policy.RequireAuthenticatedUser());
+    options.AddPolicy("ControlRoles", policy =>
+        policy.RequireRole("Supervisor", "Admin"));
 });
 builder.Services.AddScoped<UserService>();
 

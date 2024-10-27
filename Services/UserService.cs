@@ -9,33 +9,55 @@ public class UserService(DbContextLF dbContext)
 {
   private readonly DbContextLF _dbContext = dbContext;
   private readonly PasswordHasher<User> _passwordHasher = new PasswordHasher<User>();
-  public async Task<bool> Auth(string dni, string password)
+  public async Task<User?> Auth(string dni, string password)
   {
-    using var transaction = await _dbContext.Database.BeginTransactionAsync();
     try
     {
-      var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.DNI == dni && u.Password == password);
+      var user = await _dbContext.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.DNI == dni && u.Password == password);
       if (user != null)
       {
-        return true;
+        return user;
       }
-      return false;
+      return null;
     }
     catch (Exception ex)
     {
       Console.WriteLine(ex.Message);
-      return false;
+      return null;
     }
   }
 
-  public async Task<ResponseOne<User>> GetOne(string dni)
+  //se envia dni del usuario y si el rol es instructor tambien el del instructor para solo consultar sobre sus alumnos
+  public async Task<ResponseOne<User>> GetOne(string dni, string? instructorDNI)
   {
     var res = new ResponseOne<User> { Data = null, Error = null, Message = "", Status = "" };
     try
     {
-      var user = await _dbContext.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.DNI == dni);
+      User? user = null;
+      User? instructor = null;
+      if (instructorDNI == null)
+      {
+        user = await _dbContext.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.DNI == dni);
+      }
+      else
+      {
+        instructor = await _dbContext.Users.FirstOrDefaultAsync(u => u.DNI == instructorDNI);
+        if (instructor != null)
+        {
+          user = await _dbContext.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.DNI == dni && u.AcademyId == instructor.AcademyId);
+        }
+        else
+        {
+          res.UpdateValues("404", "No se encontro el instructor para hacer la consulta de su alumno", null, "Not Found");
+          return res;
+        }
+      }
       if (user != null)
       {
+        if (user.Role.Name.Equals("Admin") && user.Role.Name.Equals("Supervisor") && instructor != null)
+        {
+          res.UpdateValues("403", "Forbidden", null, "Forbidden");
+        }
         res.UpdateValues("200", "Found User", user, null);
         return res;
       }
@@ -49,6 +71,7 @@ public class UserService(DbContextLF dbContext)
       return res;
     }
   }
+
   public string EncryptPassword(User user, string plainPassword)
   {
     return _passwordHasher.HashPassword(user, plainPassword);
