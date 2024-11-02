@@ -14,7 +14,18 @@ var issuer = jwtSettings["Issuer"] ?? throw new ArgumentNullException("error");
 var audience = jwtSettings["Audience"] ?? throw new ArgumentNullException("error");
 var key = jwtSettings["SecretKey"] ?? throw new ArgumentNullException("error");
 var serverVersion = new MySqlServerVersion(new Version(8, 0, 25));
+var MyAllowSpecificOrigins = "MyAllowSpecificOrigins";
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(name: MyAllowSpecificOrigins, policy =>
+    {
+        policy.WithOrigins("http://localhost:3000")
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
+    });
+});
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddControllers().AddJsonOptions(options =>
@@ -60,6 +71,7 @@ var app = builder.Build();
 
 
 app.UseHttpsRedirection();
+app.UseCors(MyAllowSpecificOrigins);
 app.UseAuthentication();
 app.UseAuthorization();
 if (app.Environment.IsDevelopment())

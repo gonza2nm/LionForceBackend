@@ -1,4 +1,5 @@
 using lion_force_be.Models;
+using Microsoft.JSInterop.Infrastructure;
 
 namespace lion_force_be.DTOs;
 
@@ -22,4 +23,9 @@ public class UserRequestDTO
   public int BeltId { get; set; }
   public int AcademyId { get; set; }
   public int RoleId { get; set; }
+}
+public class UserLoginDTO
+{
+  public required string DNI { get; set; }
+  public required string Password { get; set; }
 }

@@ -5,7 +5,6 @@ using lion_force_be.Models;
 using lion_force_be.Services;
 using lion_force_be.Services.Authentication;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 
 namespace lion_force_be.Controllers;
@@ -35,7 +34,14 @@ public class UserController(UserService userService, JwtTokenService authService
       res.UpdateValues("403", "Forbidden", null, "Forbidden");
       return StatusCode(StatusCodes.Status403Forbidden, res);
     }
-    res = await _userService.Add(userBody, userRole);
+    if (userBody.Password.Length < 6)
+    {
+      res.UpdateValues("400", "La contraseña debe ser mayor a 6 caracteres", null, "Bad Request");
+    }
+    else
+    {
+      res = await _userService.Add(userBody, userRole);
+    }
     switch (res.Status)
     {
       case "201":
@@ -57,37 +63,114 @@ public class UserController(UserService userService, JwtTokenService authService
   [AllowAnonymous]
   [HttpPost]
   [Route("login")]
-  public async Task<ActionResult<ResponseToken>> Login(UserRequestDTO userBody)
+  public async Task<ActionResult<ResponseToken>> Login(UserLoginDTO userBody)
   {
-    var res = new ResponseToken { Token = null, Error = null };
-    if (!ModelState.IsValid || userBody.DNI == string.Empty || userBody.Password == string.Empty)
+    var res = new ResponseToken { Token = null };
+    if (!ModelState.IsValid)
     {
-      res.UpdateValues(null, "Solicitud mal armada");
       return BadRequest(res);
     }
     var user = await _userService.Auth(userBody.DNI, userBody.Password);
-    if (user != null)
+    if (user != null && _userService.VerifyUserPassword(user, userBody.Password))
     {
       var token = _authService.GenerateToken(user.DNI, user.Name, user.Role.Name);
-      res.UpdateValues(token, null);
+      res.Token = token;
       return Ok(res);
     }
     else
     {
-      res.UpdateValues(null, "Usuario o contraseña incorrecta");
       return NotFound(res);
     }
   }
+
+
+  [Authorize(Policy = "ControlRoles")]
+  [HttpGet]
+  public async Task<ActionResult<ResponseList<UserDTO>>> GetUsers()
+  {
+    var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+    var res = new ResponseList<UserDTO> { Status = "", Message = "", Data = [], Error = null };
+    if (userRole == null)
+    {
+      res.UpdateValues("400", "No se identifico el usuario", [], "Error al identificar el usuario");
+      return BadRequest(res);
+    }
+    res = await _userService.GetUsers(null);
+    return Ok(res);
+  }
+
+
+
+
+
+
+
+  //corregir esto
+
+
+
+
+
+
+
+
+
+
+  /*
+    [Authorize(Policy = "NotStudent")]
+    [HttpGet("myacademy")]
+    public async Task<ActionResult<ResponseList<UserDTO>>> GetUsersByAcademy()
+    {
+      var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+      var userDNI = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+      var res = new ResponseList<UserDTO> { Status = "", Message = "", Data = [], Error = null };
+      if (userRole == null || userDNI == null)
+      {
+        res.UpdateValues("400", "No se identifico el usuario", [], "Error al identificar el usuario");
+        return BadRequest(res);
+      }
+      if (userRole.Equals("Instructor"))
+      {
+        var resInstructor = await _userService.GetMyData(userDNI);
+        if (resInstructor.Data == null)
+        {
+          return BadRequest();
+        }
+        res = await _userService.GetUsers(resInstructor.Data.AcademyId);
+        return Ok(res);
+      }
+      else
+      {
+        if (myacademy == null)
+        {
+          res = await _userService.GetUsers(null);
+          return Ok(res);
+        }
+        var resUser = await _userService.GetMyData(userDNI);
+        if (resUser.Data == null)
+        {
+          return BadRequest();
+        }
+        res = await _userService.GetUsers(resUser.Data.AcademyId);
+        return Ok(res);
+      }
+    }
+  */
 
   [Authorize(Policy = "NotStudent")]
   [HttpGet("{dni}")]
   public async Task<ActionResult<ResponseOne<UserDTO>>> GetUser(string dni)
   {
     var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
-    var res = new ResponseOne<User> { Status = "", Message = "", Data = null, Error = null };
-    if (userRole == null)
+    var userDNI = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+    var res = new ResponseOne<UserDTO> { Status = "", Message = "", Data = null, Error = null };
+    if (userRole == null || userDNI == null)
     {
-      return BadRequest(res);
+      return BadRequest();
+    }
+    if (userDNI.Equals(dni))
+    {
+      res = await _userService.GetMyData(dni);
     }
     if (userRole.Equals("Supervisor") || userRole.Equals("Admin"))
     {

@@ -1,4 +1,3 @@
-
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -35,7 +34,7 @@ public class JwtTokenService
     var tokenDescriptor = new SecurityTokenDescriptor
     {
       Subject = new ClaimsIdentity(claims),
-      Expires = DateTime.UtcNow.AddHours(12),
+      Expires = DateTime.UtcNow.AddHours(8),
       Issuer = _issuer,
       Audience = _audience,
       SigningCredentials = signingCredentials

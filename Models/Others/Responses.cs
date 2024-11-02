@@ -1,13 +1,6 @@
 public class ResponseToken
 {
   public string? Token { get; set; }
-  public string? Error { get; set; }
-
-  public void UpdateValues(string? token, string? error)
-  {
-    Token = token;
-    Error = error;
-  }
 }
 public class ResponseOne<T>
 {
