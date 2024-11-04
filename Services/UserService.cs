@@ -24,7 +24,7 @@ public class UserService(DbContextLF dbContext, IMapper mapper)
       {
         var userDB = _mapper.Map<User>(user);
         userDB.Password = EncryptPassword(userDB, user.Password);
-        if (userRequestRol.Equals("Admin"))
+        if (userRequestRol.Equals("Admin", StringComparison.OrdinalIgnoreCase))
         {
           await _dbContext.Users.AddAsync(userDB);
           await _dbContext.SaveChangesAsync();
@@ -33,7 +33,7 @@ public class UserService(DbContextLF dbContext, IMapper mapper)
           res.UpdateValues("201", "User created succesfully", userDTO, null);
           return res;
         }
-        else if (userRequestRol.Equals("Supervisor") || userRequestRol.Equals("Instructor"))
+        else if (userRequestRol.Equals("Supervisor", StringComparison.OrdinalIgnoreCase) || userRequestRol.Equals("Instructor", StringComparison.OrdinalIgnoreCase))
         {
           if (userDB.RoleId == 1 || userDB.RoleId == 2)
           {
@@ -67,7 +67,7 @@ public class UserService(DbContextLF dbContext, IMapper mapper)
     }
   }
 
-  public async Task<User?> Auth(string dni, string password)
+  public async Task<User?> Auth(string dni)
   {
     try
     {

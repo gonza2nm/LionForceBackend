@@ -70,8 +70,36 @@ public class UserController(UserService userService, JwtTokenService authService
     {
       return BadRequest(res);
     }
-    var user = await _userService.Auth(userBody.DNI, userBody.Password);
-    if (user != null && _userService.VerifyUserPassword(user, userBody.Password))
+    var user = await _userService.Auth(userBody.DNI);
+    if (user == null || !_userService.VerifyUserPassword(user, userBody.Password))
+    {
+      return NotFound(res);
+    }
+    if (user.Role.Name.Equals("Student", StringComparison.OrdinalIgnoreCase))
+    {
+      return Unauthorized("No tienes permiso para acceder a este login.");
+    }
+    var token = _authService.GenerateToken(user.DNI, user.Name, user.Role.Name);
+    res.Token = token;
+    return Ok(res);
+  }
+
+  [AllowAnonymous]
+  [HttpPost]
+  [Route("students/login/")]
+  public async Task<ActionResult<ResponseToken>> LoginStudents(UserLoginDTO userBody)
+  {
+    var res = new ResponseToken { Token = null };
+    if (!ModelState.IsValid)
+    {
+      return BadRequest(res);
+    }
+    var user = await _userService.Auth(userBody.DNI);
+    if (user == null || !_userService.VerifyUserPassword(user, userBody.Password))
+    {
+      return NotFound(res);
+    }
+    if (user.Role.Name.Equals("Student", StringComparison.OrdinalIgnoreCase))
     {
       var token = _authService.GenerateToken(user.DNI, user.Name, user.Role.Name);
       res.Token = token;
@@ -79,7 +107,7 @@ public class UserController(UserService userService, JwtTokenService authService
     }
     else
     {
-      return NotFound(res);
+      return Unauthorized("Este login no es el indicado para tu rol");
     }
   }
 
