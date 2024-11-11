@@ -22,7 +22,7 @@ public class JwtTokenService
   {
 
     var claims = new[]{
-      new Claim(JwtRegisteredClaimNames.Sub, dni),
+      new Claim("dni", dni),
       new Claim("name",name),
       new Claim(ClaimTypes.Role, rol),
       new Claim(JwtRegisteredClaimNames.Jti,Guid.NewGuid().ToString())

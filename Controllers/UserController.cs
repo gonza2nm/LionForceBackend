@@ -1,5 +1,6 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using AutoMapper;
 using lion_force_be.DTOs;
 using lion_force_be.Models;
 using lion_force_be.Services;
@@ -12,10 +13,11 @@ namespace lion_force_be.Controllers;
 [Authorize]
 [ApiController]
 [Route("api/users")]
-public class UserController(UserService userService, JwtTokenService authService) : ControllerBase
+public class UserController(UserService userService, JwtTokenService authService, IMapper mapper) : ControllerBase
 {
   private readonly UserService _userService = userService;
   private readonly JwtTokenService _authService = authService;
+  private readonly IMapper _mapper = mapper;
 
   [HttpPost]
   [Route("signup")]
@@ -63,51 +65,94 @@ public class UserController(UserService userService, JwtTokenService authService
   [AllowAnonymous]
   [HttpPost]
   [Route("login")]
-  public async Task<ActionResult<ResponseToken>> Login(UserLoginDTO userBody)
+  public async Task<ActionResult<ResponseOne<UserDTO>>> Login(UserLoginDTO userBody)
   {
-    var res = new ResponseToken { Token = null };
+    var res = new ResponseOne<UserDTO> { Data = null, Status = "", Error = null, Message = "" };
     if (!ModelState.IsValid)
     {
-      return BadRequest(res);
+      return BadRequest();
     }
     var user = await _userService.Auth(userBody.DNI);
     if (user == null || !_userService.VerifyUserPassword(user, userBody.Password))
     {
-      return NotFound(res);
+      return NotFound();
     }
     if (user.Role.Name.Equals("Student", StringComparison.OrdinalIgnoreCase))
     {
-      return Unauthorized("No tienes permiso para acceder a este login.");
+      res.UpdateValues("403", "No tienes permiso para acceder a este login", null, "UnAuthorized");
+      return Unauthorized(res);
     }
     var token = _authService.GenerateToken(user.DNI, user.Name, user.Role.Name);
-    res.Token = token;
+    var cookieOptions = new CookieOptions
+    {
+      HttpOnly = true,
+      Secure = false,
+      SameSite = SameSiteMode.Lax,
+      Expires = DateTimeOffset.UtcNow.AddHours(8)
+    };
+    Response.Cookies.Append("authToken", token, cookieOptions);
+    var userDTO = _mapper.Map<UserDTO>(user);
+    res.UpdateValues("200", "Usuario logeado correctamente", userDTO, null);
     return Ok(res);
   }
 
   [AllowAnonymous]
   [HttpPost]
   [Route("students/login/")]
-  public async Task<ActionResult<ResponseToken>> LoginStudents(UserLoginDTO userBody)
+  public async Task<ActionResult> LoginStudents(UserLoginDTO userBody)
   {
-    var res = new ResponseToken { Token = null };
+    var res = new ResponseOne<UserDTO> { Data = null, Status = "", Error = null, Message = "" };
     if (!ModelState.IsValid)
     {
-      return BadRequest(res);
+      return BadRequest();
     }
     var user = await _userService.Auth(userBody.DNI);
     if (user == null || !_userService.VerifyUserPassword(user, userBody.Password))
     {
-      return NotFound(res);
+      return NotFound();
     }
     if (user.Role.Name.Equals("Student", StringComparison.OrdinalIgnoreCase))
     {
       var token = _authService.GenerateToken(user.DNI, user.Name, user.Role.Name);
-      res.Token = token;
-      return Ok(res);
+      var cookieOptions = new CookieOptions
+      {
+        HttpOnly = true,
+        Secure = false,
+        SameSite = SameSiteMode.Lax,
+        Expires = DateTimeOffset.UtcNow.AddHours(8)
+      };
+      Response.Cookies.Append("authToken", token, cookieOptions);
+      var userDTO = _mapper.Map<UserDTO>(user);
+      res.UpdateValues("200", "Usuario logeado correctamente", userDTO, null);
+      return Ok();
     }
     else
     {
-      return Unauthorized("Este login no es el indicado para tu rol");
+      res.UpdateValues("403", "No tienes permiso para acceder tu rol", null, "UnAuthorized");
+      return Unauthorized(res);
+    }
+  }
+
+  [AllowAnonymous]
+  [HttpPost("logout")]
+  public ActionResult Logout()
+  {
+    try
+    {
+      var cookieOptions = new CookieOptions
+      {
+        Expires = DateTimeOffset.UtcNow.AddDays(-1),
+        HttpOnly = true,
+        Secure = false,
+        SameSite = SameSiteMode.Lax
+      };
+
+      Response.Cookies.Append("authToken", "", cookieOptions);
+      return Ok();
+    }
+    catch
+    {
+      return StatusCode(500);
     }
   }
 
@@ -123,74 +168,57 @@ public class UserController(UserService userService, JwtTokenService authService
       res.UpdateValues("400", "No se identifico el usuario", [], "Error al identificar el usuario");
       return BadRequest(res);
     }
-    res = await _userService.GetUsers(null);
+    res = await _userService.GetUsers(null, false);
     return Ok(res);
   }
 
-
-
-
-
-
-
-  //corregir esto
-
-
-
-
-
-
-
-
-
-
-  /*
-    [Authorize(Policy = "NotStudent")]
-    [HttpGet("myacademy")]
-    public async Task<ActionResult<ResponseList<UserDTO>>> GetUsersByAcademy()
+  [Authorize(Policy = "NotStudent")]
+  [HttpGet("myacademy/users")]
+  public async Task<ActionResult<ResponseList<UserDTO>>> GetUsersByAcademy()
+  {
+    var userDNI = User.FindFirst("dni")?.Value;
+    var res = new ResponseList<UserDTO> { Status = "", Message = "", Data = [], Error = null };
+    if (userDNI == null)
     {
-      var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
-      var userDNI = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
-      var res = new ResponseList<UserDTO> { Status = "", Message = "", Data = [], Error = null };
-      if (userRole == null || userDNI == null)
-      {
-        res.UpdateValues("400", "No se identifico el usuario", [], "Error al identificar el usuario");
-        return BadRequest(res);
-      }
-      if (userRole.Equals("Instructor"))
-      {
-        var resInstructor = await _userService.GetMyData(userDNI);
-        if (resInstructor.Data == null)
-        {
-          return BadRequest();
-        }
-        res = await _userService.GetUsers(resInstructor.Data.AcademyId);
-        return Ok(res);
-      }
-      else
-      {
-        if (myacademy == null)
-        {
-          res = await _userService.GetUsers(null);
-          return Ok(res);
-        }
-        var resUser = await _userService.GetMyData(userDNI);
-        if (resUser.Data == null)
-        {
-          return BadRequest();
-        }
-        res = await _userService.GetUsers(resUser.Data.AcademyId);
-        return Ok(res);
-      }
+      res.UpdateValues("400", "No se identifico el usuario", [], "Error al identificar el usuario");
+      return BadRequest(res);
     }
-  */
+    var resInstructor = await _userService.GetMyData(userDNI);
+    if (resInstructor.Data == null)
+    {
+      return BadRequest();
+    }
+    res = await _userService.GetUsers(resInstructor.Data.AcademyId, false);
+    return Ok(res);
+  }
+
+  [Authorize(Policy = "NotStudent")]
+  [HttpGet("myacademy/students")]
+  public async Task<ActionResult<ResponseList<UserDTO>>> GetStudentsByAcademy()
+  {
+    var userDNI = User.FindFirst("dni")?.Value;
+    var res = new ResponseList<UserDTO> { Status = "", Message = "", Data = [], Error = null };
+    if (string.IsNullOrEmpty(userDNI))
+    {
+      res.UpdateValues("400", $"No se identifico el usuario dni:{userDNI}", [], "Error al identificar el usuario");
+      return BadRequest(res);
+    }
+    var resInstructor = await _userService.GetMyData(userDNI);
+    if (resInstructor.Data == null)
+    {
+      return BadRequest();
+    }
+    res = await _userService.GetUsers(resInstructor.Data.AcademyId, true);
+    return Ok(res);
+  }
+
 
   [Authorize(Policy = "NotStudent")]
   [HttpGet("{dni}")]
   public async Task<ActionResult<ResponseOne<UserDTO>>> GetUser(string dni)
   {
     var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
-    var userDNI = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+    var userDNI = User.FindFirst("dni")?.Value;
     var res = new ResponseOne<UserDTO> { Status = "", Message = "", Data = null, Error = null };
     if (userRole == null || userDNI == null)
     {
@@ -206,7 +234,7 @@ public class UserController(UserService userService, JwtTokenService authService
     }
     else
     {
-      var instructorDNI = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+      var instructorDNI = User.FindFirst("dni")?.Value;
       if (instructorDNI == null)
       {
         res.UpdateValues("400", "Ocurrio un error al identificar el rol", null, "Bad Request");

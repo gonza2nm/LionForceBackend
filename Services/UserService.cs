@@ -154,7 +154,7 @@ public class UserService(DbContextLF dbContext, IMapper mapper)
     }
   }
 
-  public async Task<ResponseList<UserDTO>> GetUsers(int? academyId)
+  public async Task<ResponseList<UserDTO>> GetUsers(int? academyId, bool onlyStudents)
   {
     var res = new ResponseList<UserDTO> { Status = "", Message = "", Data = [], Error = null };
     try
@@ -168,7 +168,14 @@ public class UserService(DbContextLF dbContext, IMapper mapper)
         res.UpdateValues("200", "Usuarios encontrados", usersDTO, null);
         return res;
       }
-      users = await _dbContext.Users.Where(u => u.AcademyId == academyId).ToListAsync();
+      if (onlyStudents)
+      {
+        users = await _dbContext.Users.Include(u => u.Role).Where(u => u.AcademyId == academyId && u.Role.Name == "Student").ToListAsync();
+      }
+      else
+      {
+        users = await _dbContext.Users.Where(u => u.AcademyId == academyId).ToListAsync();
+      }
       usersDTO = _mapper.Map<List<UserDTO>>(users);
       res.UpdateValues("200", "Usuarios encontrados", usersDTO, null);
       return res;
