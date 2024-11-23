@@ -14,14 +14,17 @@ public sealed class DbContextLF : DbContext
   public DbSet<Service> Services { get; set; }
   public DbSet<Price> Prices { get; set; }
   public DbSet<UserService> UserServices { get; set; }
+  public DbSet<Invoice> Invoices { get; set; }
   protected override void OnModelCreating(ModelBuilder builder)
   {
 
     builder.Entity<UserService>(tb =>
     {
-      tb.HasKey(us => new { us.UserId, us.ServiceId, us.PaymentDate });
+      tb.HasKey(us => new { us.UserId, us.ServiceId });
+      tb.Property(us => us.Active).HasDefaultValue(true);
       tb.HasOne(us => us.User).WithMany(u => u.UserServices).HasForeignKey(us => us.UserId);
       tb.HasOne(us => us.Service).WithMany(s => s.UserServices).HasForeignKey(us => us.ServiceId);
+      tb.HasMany(us => us.Invoices).WithOne(i => i.UserService).HasForeignKey(i => new { i.UserId, i.ServiceId });
     });
     builder.Entity<Role>(tb =>
     {
@@ -86,6 +89,13 @@ public sealed class DbContextLF : DbContext
       tb.HasData(
         new Academy { Id = 1, Name = "Lion Force" }
       );
+    });
+    builder.Entity<Invoice>(tb =>
+    {
+      tb.Property(i => i.PaymentDate).HasColumnType("datetime(0)");
+      tb.Property(i => i.DueDate).HasColumnType("datetime(0)");
+      tb.Property(i => i.Paid).HasDefaultValue(false);
+      tb.Property(i => i.PaymentDate).HasDefaultValue(null);
     });
   }
 }

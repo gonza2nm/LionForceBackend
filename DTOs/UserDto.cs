@@ -13,6 +13,7 @@ public class UserDTO
   public int BeltId { get; set; }
   public int AcademyId { get; set; }
 }
+
 public class UserRequestDTO
 {
   public required string DNI { get; set; }

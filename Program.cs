@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json.Serialization;
 using lion_force_be.DBContext;
+using lion_force_be.Middlewares;
 using lion_force_be.Services;
 using lion_force_be.Services.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -71,6 +72,7 @@ var app = builder.Build();
 
 app.UseHttpsRedirection();
 app.UseCors(MyAllowSpecificOrigins);
+app.UseMiddleware<CookieToAuthorizationHeaderMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
 if (app.Environment.IsDevelopment())

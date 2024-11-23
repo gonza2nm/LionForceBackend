@@ -6,10 +6,11 @@ public class UserService
 {
   public int UserId { get; set; }
   public int ServiceId { get; set; }
-  public DateTime PaymentDate { get; set; }
+  public bool Active { get; set; }
   [JsonIgnore]
   public User User { get; set; } = null!;
   [JsonIgnore]
   public Service Service { get; set; } = null!;
-
+  [JsonIgnore]
+  public List<Invoice> Invoices { get; set; } = new List<Invoice>();
 }
