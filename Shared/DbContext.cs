@@ -7,14 +7,14 @@ namespace lion_force_be.DBContext;
 public sealed class DbContextLF : DbContext
 {
   public DbContextLF(DbContextOptions<DbContextLF> options) : base(options) { }
-  public DbSet<Academy> Academies { get; set; }
-  public DbSet<User> Users { get; set; }
-  public DbSet<Role> Roles { get; set; }
-  public DbSet<Belt> Belts { get; set; }
-  public DbSet<Service> Services { get; set; }
-  public DbSet<Price> Prices { get; set; }
-  public DbSet<UserService> UserServices { get; set; }
-  public DbSet<Invoice> Invoices { get; set; }
+  public required DbSet<Academy> Academies { get; set; }
+  public required DbSet<User> Users { get; set; }
+  public required DbSet<Role> Roles { get; set; }
+  public required DbSet<Belt> Belts { get; set; }
+  public required DbSet<Service> Services { get; set; }
+  public required DbSet<Price> Prices { get; set; }
+  public required DbSet<UserService> UserServices { get; set; }
+  public required DbSet<Invoice> Invoices { get; set; }
   protected override void OnModelCreating(ModelBuilder builder)
   {
 
@@ -24,7 +24,7 @@ public sealed class DbContextLF : DbContext
       tb.Property(us => us.Active).HasDefaultValue(true);
       tb.HasOne(us => us.User).WithMany(u => u.UserServices).HasForeignKey(us => us.UserId);
       tb.HasOne(us => us.Service).WithMany(s => s.UserServices).HasForeignKey(us => us.ServiceId);
-      tb.HasMany(us => us.Invoices).WithOne(i => i.UserService).HasForeignKey(i => new { i.UserId, i.ServiceId });
+      tb.HasMany(us => us.Invoices).WithOne(i => i.UserService).HasForeignKey(i => new { i.UserId, i.ServiceId }).OnDelete(DeleteBehavior.Cascade);
     });
     builder.Entity<Role>(tb =>
     {
@@ -79,7 +79,7 @@ public sealed class DbContextLF : DbContext
       tb.HasOne(u => u.Belt).WithMany(b => b.Users).HasForeignKey(u => u.BeltId);
       tb.HasOne(u => u.Role).WithMany(r => r.Users).HasForeignKey(u => u.RoleId);
       tb.HasOne(u => u.Academy).WithMany(a => a.Users).HasForeignKey(u => u.AcademyId);
-      tb.HasMany(u => u.UserServices).WithOne(us => us.User).HasForeignKey(us => us.UserId);
+      tb.HasMany(u => u.UserServices).WithOne(us => us.User).HasForeignKey(us => us.UserId).OnDelete(DeleteBehavior.Cascade);
       tb.HasOne(u => u.Belt).WithMany(b => b.Users).HasForeignKey(u => u.BeltId);
     });
     builder.Entity<Academy>(tb =>

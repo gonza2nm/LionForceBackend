@@ -13,9 +13,9 @@ public class UserService(DbContextLF dbContext, IMapper mapper)
   private readonly PasswordHasher<User> _passwordHasher = new PasswordHasher<User>();
   private readonly IMapper _mapper = mapper;
 
-  public async Task<ResponseOne<UserDTO>> Add(UserRequestDTO user, string userRequestRol)
+  public async Task<ResponseOne<User>> Add(UserRequestDTO user, string userRequestRol)
   {
-    var res = new ResponseOne<UserDTO> { Status = "", Message = "", Data = null, Error = null };
+    var res = new ResponseOne<User> { Status = "", Message = "", Data = null };
     using var transaction = await _dbContext.Database.BeginTransactionAsync();
     try
     {
@@ -29,8 +29,7 @@ public class UserService(DbContextLF dbContext, IMapper mapper)
           await _dbContext.Users.AddAsync(userDB);
           await _dbContext.SaveChangesAsync();
           await transaction.CommitAsync();
-          var userDTO = _mapper.Map<UserDTO>(user);
-          res.UpdateValues("201", "User created succesfully", userDTO, null);
+          res.UpdateValues("201", "User created succesfully", userDB);
           return res;
         }
         else if (userRequestRol.Equals("Supervisor", StringComparison.OrdinalIgnoreCase) || userRequestRol.Equals("Instructor", StringComparison.OrdinalIgnoreCase))
@@ -38,31 +37,31 @@ public class UserService(DbContextLF dbContext, IMapper mapper)
           if (userDB.RoleId == 1 || userDB.RoleId == 2)
           {
             await transaction.RollbackAsync();
-            res.UpdateValues("403", "No tiene permisos para crear un usuario administrador o supervisor", null, "No tiene permisos suficientes");
+            res.UpdateValues("403", "No tiene permisos para crear un usuario administrador o supervisor", null);
             return res;
           }
           await _dbContext.Users.AddAsync(userDB);
           await _dbContext.SaveChangesAsync();
           await transaction.CommitAsync();
-          var userDTO = _mapper.Map<UserDTO>(user);
-          res.UpdateValues("201", "User created succesfully", userDTO, null);
+          res.UpdateValues("201", "User created succesfully", userDB);
           return res;
         }
         else
         {
-          res.UpdateValues("400", "Error con los roles", null, "No se identifico correctamente el rol a pesar de todos los filtros");
+          res.UpdateValues("400", "Error con los roles", null);
           return res;
         }
       }
       else
       {
-        res.UpdateValues("409", "Ya existe un usuario con ese dni", null, "Conflict");
+        res.UpdateValues("409", "Ya existe un usuario con ese dni", null);
         return res;
       }
     }
     catch (Exception ex)
     {
-      res.UpdateValues("500", "Ocurrio un Eror interno", null, ex.Message);
+      Console.WriteLine(ex.Message);
+      res.UpdateValues("500", "Ocurrio un Eror interno", null);
       return res;
     }
   }
@@ -86,33 +85,33 @@ public class UserService(DbContextLF dbContext, IMapper mapper)
   }
 
 
-  public async Task<ResponseOne<UserDTO>> GetMyData(string dni)
+  public async Task<ResponseOne<User>> GetMyData(string dni)
   {
-    var res = new ResponseOne<UserDTO> { Data = null, Error = null, Message = "", Status = "" };
+    var res = new ResponseOne<User> { Data = null, Message = "", Status = "" };
     try
     {
       var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.DNI == dni);
       if (user == null)
       {
-        res.UpdateValues("404", "No se encontro el usuario", null, "Not Found");
+        res.UpdateValues("404", "No se encontro el usuario", null);
         return res;
       }
-      var userDTO = _mapper.Map<UserDTO>(user);
-      res.UpdateValues("200", "Se encontro el usuario exitosamente", userDTO, null);
+      res.UpdateValues("200", "Se encontro el usuario exitosamente", user);
       return res;
     }
     catch (Exception ex)
     {
-      res.UpdateValues("500", "Ocurrio un error al hacer la consulta", null, ex.Message);
+      Console.WriteLine(ex.Message);
+      res.UpdateValues("500", "Ocurrio un error al hacer la consulta", null);
       return res;
     }
   }
 
 
   //se envia dni del usuario y si el rol es instructor tambien el del instructor para solo consultar sobre sus alumnos
-  public async Task<ResponseOne<UserDTO>> GetOne(string dni, string? instructorDNI)
+  public async Task<ResponseOne<User>> GetOne(string dni, string? instructorDNI)
   {
-    var res = new ResponseOne<UserDTO> { Data = null, Error = null, Message = "", Status = "" };
+    var res = new ResponseOne<User> { Data = null, Message = "", Status = "" };
     try
     {
       User? user = null;
@@ -130,7 +129,7 @@ public class UserService(DbContextLF dbContext, IMapper mapper)
         }
         else
         {
-          res.UpdateValues("404", "No se encontro el instructor para hacer la consulta de su alumno", null, "Not Found");
+          res.UpdateValues("404", "No se encontro el instructor para hacer la consulta de su alumno", null);
           return res;
         }
       }
@@ -138,34 +137,32 @@ public class UserService(DbContextLF dbContext, IMapper mapper)
       {
         if (user.Role.Name.Equals("Admin") && user.Role.Name.Equals("Supervisor") && instructor != null)
         {
-          res.UpdateValues("403", "Forbidden", null, "Forbidden");
+          res.UpdateValues("403", "Forbidden", null);
         }
-        var userDTO = _mapper.Map<UserDTO>(user);
-        res.UpdateValues("200", "Found User", userDTO, null);
+        res.UpdateValues("200", "Found User", user);
         return res;
       }
-      res.UpdateValues("404", "User Not Found", null, "Not Found");
+      res.UpdateValues("404", "User Not Found", null);
       return res;
     }
     catch (Exception ex)
     {
-      res.UpdateValues("500", "Internal Server Error", null, ex.Message);
+      Console.WriteLine(ex.Message);
+      res.UpdateValues("500", "Internal Server Error", null);
       return res;
     }
   }
 
-  public async Task<ResponseList<UserDTO>> GetUsers(int? academyId, bool onlyStudents)
+  public async Task<ResponseList<User>> GetUsers(int? academyId, bool onlyStudents)
   {
-    var res = new ResponseList<UserDTO> { Status = "", Message = "", Data = [], Error = null };
+    var res = new ResponseList<User> { Status = "", Message = "", Data = [] };
     try
     {
       List<User>? users;
-      List<UserDTO>? usersDTO;
       if (academyId == null)
       {
         users = await _dbContext.Users.ToListAsync();
-        usersDTO = _mapper.Map<List<UserDTO>>(users);
-        res.UpdateValues("200", "Usuarios encontrados", usersDTO, null);
+        res.UpdateValues("200", "Usuarios encontrados", users);
         return res;
       }
       if (onlyStudents)
@@ -176,13 +173,102 @@ public class UserService(DbContextLF dbContext, IMapper mapper)
       {
         users = await _dbContext.Users.Where(u => u.AcademyId == academyId).ToListAsync();
       }
-      usersDTO = _mapper.Map<List<UserDTO>>(users);
-      res.UpdateValues("200", "Usuarios encontrados", usersDTO, null);
+      res.UpdateValues("200", "Usuarios encontrados", users);
       return res;
     }
     catch (Exception ex)
     {
-      res.UpdateValues("500", "Hubo un error al ejecutar al hacer la consulta a la base de datos", [], ex.Message);
+      Console.WriteLine(ex.Message);
+      res.UpdateValues("500", "Hubo un error al ejecutar al hacer la consulta a la base de datos", []);
+      return res;
+    }
+  }
+
+  public async Task<ResponseOne<User>> Update(UserDTO userDTO, string instructorDNI, bool onlyYourAcademy)
+  {
+    User? Instructor;
+    User? User;
+    var res = new ResponseOne<User> { Status = "", Message = "", Data = null };
+    using var transaction = await _dbContext.Database.BeginTransactionAsync();
+    try
+    {
+      User = await _dbContext.Users.FirstOrDefaultAsync(u => u.DNI == userDTO.DNI);
+      if (User == null)
+      {
+        res.UpdateValues("404", "User not Found", null);
+        return res;
+      }
+      if (onlyYourAcademy)
+      {
+        Instructor = await _dbContext.Users.FirstOrDefaultAsync(u => u.DNI == instructorDNI);
+        if (Instructor != null)
+        {
+          if (User.AcademyId == Instructor.AcademyId)
+          {
+            _mapper.Map<UserDTO, User>(userDTO, User);
+            User.Password = EncryptPassword(User, userDTO.Password);
+            await _dbContext.SaveChangesAsync();
+            await transaction.CommitAsync();
+            res.UpdateValues("200", "User Updated successfully", User);
+            return res;
+          }
+          else
+          {
+            res.UpdateValues("400", "No tienes permiso para editar ese usuario", null);
+            return res;
+          }
+        }
+        else
+        {
+          res.UpdateValues("400", "Instructor not found", null);
+          return res;
+        }
+      }
+      else
+      {
+        _mapper.Map<UserDTO, User>(userDTO, User);
+        User.Password = EncryptPassword(User, userDTO.Password);
+        await _dbContext.SaveChangesAsync();
+        await transaction.CommitAsync();
+        res.UpdateValues("200", "User Updated successfully", User);
+        return res;
+      }
+    }
+    catch (Exception ex)
+    {
+      await transaction.RollbackAsync();
+      Console.WriteLine(ex.Message);
+      res.UpdateValues("500", "Ocurrio un Error inesperado", null);
+      return res;
+    }
+  }
+
+  public async Task<ResponseOne<User>> Delete(string dni)
+  {
+    var res = new ResponseOne<User> { Status = "", Message = "", Data = null };
+    using var transaction = await _dbContext.Database.BeginTransactionAsync();
+    try
+    {
+      var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.DNI == dni);
+      if (user != null)
+      {
+        _dbContext.Users.Remove(user);
+        await _dbContext.SaveChangesAsync();
+        await transaction.CommitAsync();
+        res.UpdateValues("200", "Eliminado Exitosamente", null);
+        return res;
+      }
+      else
+      {
+        res.UpdateValues("404", "No se encontro el usuario que desea eliminar", null);
+        return res;
+      }
+    }
+    catch (Exception ex)
+    {
+      await transaction.RollbackAsync();
+      Console.WriteLine(ex.Message);
+      res.UpdateValues("500", "Ocurrio un error al eliminar el usuario", null);
       return res;
     }
   }
@@ -198,7 +284,4 @@ public class UserService(DbContextLF dbContext, IMapper mapper)
     var result = _passwordHasher.VerifyHashedPassword(user, user.Password, plainPassword);
     return result == PasswordVerificationResult.Success;
   }
-
-
-
 }
