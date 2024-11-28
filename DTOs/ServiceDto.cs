@@ -18,3 +18,9 @@ public class ServiceRequestDTO
   public required int AcademyId { get; set; }
   public required decimal Value { get; set; }
 }
+public class ServiceUpdateDTO
+{
+  public required string Name { get; set; }
+  public required string Details { get; set; }
+  public required decimal Value { get; set; }
+}

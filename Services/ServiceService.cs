@@ -87,15 +87,66 @@ public class ServiceService(DbContextLF dbContext, IMapper mapper)
       return res;
     }
   }
-  /*
-    public async Task<ResponseOne<Service>> Update()
-    {
-      return await true;
-    }
 
-    public async Task<ResponseOne<Service>> Delete()
+  public async Task<ResponseOne<Service>> Update(ServiceUpdateDTO serviceToUpd, int id, bool isAdmin, string userDNI)
+  {
+    using var transaction = await _dbContext.Database.BeginTransactionAsync();
+    var res = new ResponseOne<Service> { Status = "", Message = "", Data = null };
+    Service? service;
+    Price? lastPrice;
+    try
     {
-      return await true;
+      service = await _dbContext.Services.FirstOrDefaultAsync(s => s.Id == id);
+      if (service == null)
+      {
+        res.UpdateValues("404", "No se encontro ese servicio", null);
+        return res;
+      }
+      lastPrice = await _dbContext.Prices.FirstOrDefaultAsync(p => p.ServiceId == service.Id && p.UntilDate == null);
+      if (lastPrice == null)
+      {
+        res.UpdateValues("404", "No se encontro el ultimo precio de su servicio", null);
+        return res;
+      }
+      if (!isAdmin)
+      {
+        var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.DNI == userDNI);
+        if (user == null)
+        {
+          res.UpdateValues("400", "Ocurrio un Problema al aplicar las logicas de negocio", null);
+          return res;
+        }
+        if (service.AcademyId != user.AcademyId)
+        {
+          res.UpdateValues("400", "No puede modificar un servicio que corresponde a otra academia", null);
+          return res;
+        }
+      }
+      _mapper.Map<ServiceUpdateDTO, Service>(serviceToUpd, service);
+      if (serviceToUpd.Value != lastPrice.Value)
+      {
+        var now = DateTime.Now;
+        lastPrice.UntilDate = now;
+        Price newPrice = new Price { ServiceId = service.Id, FromDate = now, Value = serviceToUpd.Value, UntilDate = null };
+        await _dbContext.Prices.AddAsync(newPrice);
+        await _dbContext.SaveChangesAsync();
+        await transaction.CommitAsync();
+      }
+      res.UpdateValues("200", "Actualizado Exitosamente", null);
+      return res;
     }
-    */
+    catch (Exception ex)
+    {
+      await transaction.RollbackAsync();
+      Console.WriteLine(ex.Message);
+      res.UpdateValues("500", "Ocurrio un error al Actualizar los servicios de su academia", null);
+      return res;
+    }
+  }
+  /*
+      public async Task<ResponseOne<Service>> Delete()
+      {
+        return await true;
+      }
+      */
 }

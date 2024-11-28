@@ -81,19 +81,41 @@ public class ServiceController(ServiceService service, IMapper mapper) : Control
       default: return StatusCode(StatusCodes.Status500InternalServerError, res);
     }
   }
-  /*
-        [Authorize(Policy = "NotStudent")]
-        [HttpPut("{id}")]
-        public async Task<ActionResult<ResponseOne<ServiceDTO>>> Update()
-        {
-          return await _service.Update();
-        }
 
-        [Authorize(Policy = "NotStudent")]
-        [HttpDelete("{id}")]
-        public async Task<ActionResult<ResponseOne<ServiceDTO>>> Delete()
-        {
-          return await _service.Delete();
-        }
-      */
+  [Authorize(Policy = "NotStudent")]
+  [HttpPut("{id}")]
+  public async Task<ActionResult<ResponseOne<ServiceDTO>>> Update(int id, ServiceUpdateDTO serviceToUpd)
+  {
+    bool isAdmin = false;
+    var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+    var userDNI = User.FindFirst("dni")?.Value;
+    var res = new ResponseOne<ServiceDTO> { Status = "", Message = "", Data = null };
+    if (userRole == null || userDNI == null)
+    {
+      res.UpdateValues("400", "Hubo un Problema al identificar el usuario", null);
+      return BadRequest(res);
+    }
+    if (userRole.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+    {
+      isAdmin = true;
+    }
+    var serviceRes = await _service.Update(serviceToUpd, id, isAdmin, userDNI);
+    res.UpdateValues(serviceRes.Status, serviceRes.Message, null);
+    switch (res.Status)
+    {
+      case "200": return Ok(res);
+      case "400": return BadRequest(res);
+      case "404": return NotFound(res);
+      default: return StatusCode(StatusCodes.Status500InternalServerError, res);
+    }
+  }
+
+  /*
+          [Authorize(Policy = "NotStudent")]
+          [HttpDelete("{id}")]
+          public async Task<ActionResult<ResponseOne<ServiceDTO>>> Delete()
+          {
+            return await _service.Delete();
+          }
+        */
 }
