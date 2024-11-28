@@ -82,6 +82,23 @@ public sealed class DbContextLF : DbContext
       tb.HasMany(u => u.UserServices).WithOne(us => us.User).HasForeignKey(us => us.UserId).OnDelete(DeleteBehavior.Cascade);
       tb.HasOne(u => u.Belt).WithMany(b => b.Users).HasForeignKey(u => u.BeltId);
     });
+
+    builder.Entity<Service>(tb =>
+    {
+      tb.Property(s => s.Name).HasColumnType("varchar(30)");
+      tb.Property(s => s.Details).HasColumnType("varchar(200)");
+      tb.HasMany(s => s.Prices).WithOne(p => p.Service).HasForeignKey(p => p.ServiceId);
+      tb.HasMany(s => s.UserServices).WithOne(usser => usser.Service).HasForeignKey(usser => usser.ServiceId);
+      tb.HasOne(s => s.Academy).WithMany(a => a.Services).HasForeignKey(s => s.AcademyId);
+    });
+    builder.Entity<Price>(tb =>
+    {
+      tb.Property(p => p.FromDate).HasColumnType("datetime(0)");
+      tb.Property(p => p.UntilDate).HasColumnType("datetime(0)");
+      tb.Property(p => p.Value).HasPrecision(18, 2);
+      tb.HasOne(p => p.Service).WithMany(s => s.Prices).HasForeignKey(p => p.ServiceId);
+    });
+
     builder.Entity<Academy>(tb =>
     {
       tb.Property(a => a.Name).HasColumnType("varchar(50)");

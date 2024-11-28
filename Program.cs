@@ -66,6 +66,8 @@ builder.Services.AddAuthorization(options =>
         policy.RequireRole("Supervisor", "Admin"));
 });
 builder.Services.AddScoped<UserService>();
+builder.Services.AddScoped<ServiceService>();
+
 
 var app = builder.Build();
 

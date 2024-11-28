@@ -19,22 +19,17 @@ public class UserController(UserService userService, JwtTokenService authService
   private readonly JwtTokenService _authService = authService;
   private readonly IMapper _mapper = mapper;
 
+  [Authorize(Policy = "NotStudent")]
   [HttpPost]
   [Route("signup")]
-  [Authorize(Policy = "NotStudent")]
   public async Task<ActionResult<ResponseOne<UserDTO>>> SignUp(UserRequestDTO userBody)
   {
     var res = new ResponseOne<UserDTO> { Status = "", Message = "", Data = null };
-    if (!ModelState.IsValid || userBody.DNI == string.Empty || userBody.Password == string.Empty)
-    {
-      res.UpdateValues("400", "Solicitud mal armada", null);
-      return BadRequest(res);
-    }
     var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
-    if (userRole == null || userRole == "Student")
+    if (userRole == null)
     {
-      res.UpdateValues("403", "Forbidden", null);
-      return StatusCode(StatusCodes.Status403Forbidden, res);
+      res.UpdateValues("400", "Bad Request", null);
+      return BadRequest(res);
     }
     if (userBody.Password.Length < 6)
     {
@@ -54,8 +49,8 @@ public class UserController(UserService userService, JwtTokenService authService
         return BadRequest(res);
       case "403":
         return StatusCode(StatusCodes.Status403Forbidden, res);
-      case "404":
-        return NotFound(res);
+      case "409":
+        return StatusCode(StatusCodes.Status409Conflict, res);
       default:
         return StatusCode(StatusCodes.Status500InternalServerError, res);
     }
@@ -68,10 +63,6 @@ public class UserController(UserService userService, JwtTokenService authService
   public async Task<ActionResult<ResponseOne<UserDTO>>> Login(UserLoginDTO userBody)
   {
     var res = new ResponseOne<UserDTO> { Data = null, Status = "", Message = "" };
-    if (!ModelState.IsValid)
-    {
-      return BadRequest();
-    }
     var user = await _userService.Auth(userBody.DNI);
     if (user == null || !_userService.VerifyUserPassword(user, userBody.Password))
     {
@@ -102,10 +93,6 @@ public class UserController(UserService userService, JwtTokenService authService
   public async Task<ActionResult> LoginStudents(UserLoginDTO userBody)
   {
     var res = new ResponseOne<UserDTO> { Data = null, Status = "", Message = "" };
-    if (!ModelState.IsValid)
-    {
-      return BadRequest();
-    }
     var user = await _userService.Auth(userBody.DNI);
     if (user == null || !_userService.VerifyUserPassword(user, userBody.Password))
     {
