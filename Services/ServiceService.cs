@@ -123,7 +123,7 @@ public class ServiceService(DbContextLF dbContext, IMapper mapper)
         }
       }
       _mapper.Map<ServiceUpdateDTO, Service>(serviceToUpd, service);
-      if (serviceToUpd.Value != lastPrice.Value)
+      if (Math.Round(serviceToUpd.Value, 2) != lastPrice.Value)
       {
         var now = DateTime.Now;
         lastPrice.UntilDate = now;
