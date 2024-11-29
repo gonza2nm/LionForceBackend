@@ -13,22 +13,36 @@ public class ServiceService(DbContextLF dbContext, IMapper mapper)
   public readonly DbContextLF _dbContext = dbContext;
   public readonly IMapper _mapper = mapper;
 
-  public async Task<ResponseOne<ServiceDTO>> Add(ServiceRequestDTO serviceRDTO)
+  public async Task<ResponseOne<ServiceDTO>> Add(ServiceRequestDTO serviceRDTO, string instructorDNI, bool isAdmin)
   {
     var res = new ResponseOne<ServiceDTO> { Status = "", Message = "", Data = null };
     using var transaction = await _dbContext.Database.BeginTransactionAsync();
     try
     {
+      if (!isAdmin)
+      {
+        var instructor = await _dbContext.Users.FirstOrDefaultAsync(u => u.DNI == instructorDNI);
+        if (instructor == null)
+        {
+          res.UpdateValues("400", "No se identifico al usuario correctamente", null);
+          return res;
+        }
+        if (instructor.AcademyId != serviceRDTO.AcademyId)
+        {
+          res.UpdateValues("400", "No puede crear un servicio para una academia que no le corresponde", null);
+          return res;
+        }
+      }
       var ServiceDB = _mapper.Map<Service>(serviceRDTO);
       await _dbContext.Services.AddAsync(ServiceDB);
       await _dbContext.SaveChangesAsync();
-      var Price = new Price { FromDate = DateTime.Now, ServiceId = ServiceDB.Id, UntilDate = null, Value = serviceRDTO.Value };
+      var Price = new Price { FromDate = DateTime.Now, ServiceId = ServiceDB.Id, UntilDate = null, Value = Math.Round(serviceRDTO.Value, 2) };
       await _dbContext.Prices.AddAsync(Price);
       await _dbContext.SaveChangesAsync();
       await transaction.CommitAsync();
       var ServiceDTO = _mapper.Map<ServiceDTO>(ServiceDB);
       ServiceDTO.Value = serviceRDTO.Value;
-      res.UpdateValues("200", "Servicio agregado correctamente", ServiceDTO);
+      res.UpdateValues("201", "Servicio creado correctamente", ServiceDTO);
       return res;
     }
     catch (Exception ex)
@@ -45,7 +59,7 @@ public class ServiceService(DbContextLF dbContext, IMapper mapper)
     var res = new ResponseList<Service> { Status = "", Message = "", Data = [] };
     try
     {
-      var services = await _dbContext.Services.ToListAsync();
+      var services = await _dbContext.Services.Include(s => s.Prices.Where(p => p.UntilDate == null)).ToListAsync();
       res.UpdateValues("200", "Listado de Servicios", services);
       return res;
     }
@@ -65,7 +79,7 @@ public class ServiceService(DbContextLF dbContext, IMapper mapper)
     {
       if (ControleRole)
       {
-        services = await _dbContext.Services.Where(s => s.AcademyId == academyid).ToListAsync();
+        services = await _dbContext.Services.Include(s => s.Prices.Where(p => p.UntilDate == null)).Where(s => s.AcademyId == academyid).ToListAsync();
       }
       else
       {
@@ -75,7 +89,7 @@ public class ServiceService(DbContextLF dbContext, IMapper mapper)
           res.UpdateValues("400", "No puede pedir servicios que sean de otra academia", []);
           return res;
         }
-        services = await _dbContext.Services.Where(s => s.AcademyId == academyid).ToListAsync();
+        services = await _dbContext.Services.Include(s => s.Prices.Where(p => p.UntilDate == null)).Where(s => s.AcademyId == academyid).ToListAsync();
       }
       res.UpdateValues("200", "Listado de servicios de su academia", services);
       return res;
@@ -96,7 +110,7 @@ public class ServiceService(DbContextLF dbContext, IMapper mapper)
     {
       if (isAdmin)
       {
-        service = await _dbContext.Services.FirstOrDefaultAsync(s => s.Id == id);
+        service = await _dbContext.Services.Include(s => s.Prices.Where(p => p.UntilDate == null)).FirstOrDefaultAsync(s => s.Id == id);
       }
       else
       {
@@ -106,7 +120,7 @@ public class ServiceService(DbContextLF dbContext, IMapper mapper)
           res.UpdateValues("400", "No puede buscar servicio que es de otra academia", null);
           return res;
         }
-        service = await _dbContext.Services.FirstOrDefaultAsync(s => s.Id == id && s.AcademyId == user.AcademyId);
+        service = await _dbContext.Services.Include(s => s.Prices.Where(p => p.UntilDate == null)).FirstOrDefaultAsync(s => s.Id == id && s.AcademyId == user.AcademyId);
       }
       if (service == null)
       {

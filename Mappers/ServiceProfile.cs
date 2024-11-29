@@ -8,7 +8,7 @@ public class ServiceProfile : Profile
 {
   public ServiceProfile()
   {
-    CreateMap<Service, ServiceDTO>().ReverseMap();
+    CreateMap<Service, ServiceDTO>().ForMember(dest => dest.Value, opt => opt.MapFrom(src => src.Prices.FirstOrDefault(p => p.UntilDate == null)!.Value)).ReverseMap();
     CreateMap<ServiceDTO, ServiceRequestDTO>().ReverseMap();
     CreateMap<Service, ServiceRequestDTO>().ReverseMap();
     CreateMap<Service, ServiceUpdateDTO>().ReverseMap();

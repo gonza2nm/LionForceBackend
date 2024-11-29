@@ -22,7 +22,25 @@ public class ServiceController(ServiceService service, IMapper mapper) : Control
   [HttpPost]
   public async Task<ActionResult<ResponseOne<ServiceDTO>>> Add(ServiceRequestDTO serviceRDTO)
   {
-    var res = await _service.Add(serviceRDTO);
+    bool isAdmin = false;
+    var res = new ResponseOne<ServiceDTO> { Status = "", Message = "", Data = null };
+    var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+    if (userRole == null)
+    {
+      res.UpdateValues("400", "No se identifico su authorizacion", null);
+      return BadRequest(res);
+    }
+    var userDNI = User.FindFirst("dni")?.Value;
+    if (userDNI == null)
+    {
+      res.UpdateValues("400", "No se pudo identificar al usuario", null);
+      return BadRequest(res);
+    }
+    if (userRole.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+    {
+      isAdmin = true;
+    }
+    res = await _service.Add(serviceRDTO, userDNI, isAdmin);
     switch (res.Status)
     {
       case "201":
@@ -40,7 +58,7 @@ public class ServiceController(ServiceService service, IMapper mapper) : Control
   public async Task<ActionResult<ResponseList<ServiceDTO>>> GetAll()
   {
     ResponseList<Service> serviceRes = await _service.GetAll();
-    var servicesDTO = _mapper.Map<List<ServiceDTO>>(serviceRes);
+    var servicesDTO = _mapper.Map<List<ServiceDTO>>(serviceRes.Data);
     var res = new ResponseList<ServiceDTO> { Status = serviceRes.Status, Message = serviceRes.Message, Data = servicesDTO };
     switch (res.Status)
     {
@@ -72,7 +90,7 @@ public class ServiceController(ServiceService service, IMapper mapper) : Control
       ControlRole = true;
     }
     var serviceRes = await _service.GetAllByAcademy(userDNI, academyid, ControlRole);
-    var servicesDTO = _mapper.Map<List<ServiceDTO>>(serviceRes);
+    var servicesDTO = _mapper.Map<List<ServiceDTO>>(serviceRes.Data);
     res.UpdateValues(serviceRes.Status, serviceRes.Message, servicesDTO);
     switch (res.Status)
     {

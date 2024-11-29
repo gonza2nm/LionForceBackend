@@ -8,7 +8,6 @@ public class ServiceDTO
   public required string Details { get; set; }
   public required int AcademyId { get; set; }
   public decimal Value { get; set; }
-
 }
 
 public class ServiceRequestDTO
