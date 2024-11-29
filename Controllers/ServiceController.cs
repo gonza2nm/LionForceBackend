@@ -50,7 +50,7 @@ public class ServiceController(ServiceService service, IMapper mapper) : Control
   }
 
   [Authorize(Policy = "NotStudent")]
-  [HttpGet("{academyid}")]
+  [HttpGet("byacademy/{academyid}")]
   public async Task<ActionResult<ResponseList<ServiceDTO>>> GetAllByAcademy(int academyid)
   {
     bool ControlRole = false;
@@ -78,6 +78,40 @@ public class ServiceController(ServiceService service, IMapper mapper) : Control
     {
       case "200": return Ok(res);
       case "400": return BadRequest(res);
+      default: return StatusCode(StatusCodes.Status500InternalServerError, res);
+    }
+  }
+
+  [Authorize(Policy = "NotStudent")]
+  [HttpGet("{id}")]
+  public async Task<ActionResult<ResponseOne<ServiceDTO>>> GetOne(int id)
+  {
+    bool isAdmin = false;
+    var res = new ResponseOne<ServiceDTO> { Status = "", Message = "", Data = null };
+    var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+    if (userRole == null)
+    {
+      res.UpdateValues("400", "No se identifico su authorizacion", null);
+      return BadRequest(res);
+    }
+    var userDNI = User.FindFirst("dni")?.Value;
+    if (userDNI == null)
+    {
+      res.UpdateValues("400", "No se pudo identificar al usuario", null);
+      return BadRequest(res);
+    }
+    if (userRole.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+    {
+      isAdmin = true;
+    }
+    var serviceRes = await _service.GetOne(userDNI, id, isAdmin);
+    var serviceDTO = _mapper.Map<ServiceDTO>(serviceRes.Data);
+    res.UpdateValues(serviceRes.Status, serviceRes.Message, serviceDTO);
+    switch (res.Status)
+    {
+      case "200": return Ok(res);
+      case "400": return BadRequest(res);
+      case "404": return NotFound(res);
       default: return StatusCode(StatusCodes.Status500InternalServerError, res);
     }
   }

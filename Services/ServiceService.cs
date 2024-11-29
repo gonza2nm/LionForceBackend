@@ -88,6 +88,42 @@ public class ServiceService(DbContextLF dbContext, IMapper mapper)
     }
   }
 
+  public async Task<ResponseOne<Service>> GetOne(string instructorDNI, int id, bool isAdmin)
+  {
+    var res = new ResponseOne<Service> { Status = "", Message = "", Data = null };
+    Service? service;
+    try
+    {
+      if (isAdmin)
+      {
+        service = await _dbContext.Services.FirstOrDefaultAsync(s => s.Id == id);
+      }
+      else
+      {
+        var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.DNI == instructorDNI);
+        if (user == null)
+        {
+          res.UpdateValues("400", "No puede buscar servicio que es de otra academia", null);
+          return res;
+        }
+        service = await _dbContext.Services.FirstOrDefaultAsync(s => s.Id == id && s.AcademyId == user.AcademyId);
+      }
+      if (service == null)
+      {
+        res.UpdateValues("404", "No se encontro el servicio", null);
+        return res;
+      }
+      res.UpdateValues("200", "Servicio encontrado", service);
+      return res;
+    }
+    catch (Exception ex)
+    {
+      Console.WriteLine(ex.Message);
+      res.UpdateValues("500", "Ocurrio un error al buscar lel servicio de su academia", null);
+      return res;
+    }
+  }
+
   public async Task<ResponseOne<Service>> Update(ServiceUpdateDTO serviceToUpd, int id, bool isAdmin, string userDNI)
   {
     using var transaction = await _dbContext.Database.BeginTransactionAsync();
