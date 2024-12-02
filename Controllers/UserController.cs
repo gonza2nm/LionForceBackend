@@ -266,11 +266,46 @@ public class UserController(UserService userService, JwtTokenService authService
     }
     if (userRole.Equals("Admin", StringComparison.OrdinalIgnoreCase))
     {
-      serviceRes = await _userService.Update(userDTO, userDNI, false);
+      serviceRes = await _userService.Update(dni, userDTO, userDNI, false);
     }
     else
     {
-      serviceRes = await _userService.Update(userDTO, userDNI, true);
+      serviceRes = await _userService.Update(dni, userDTO, userDNI, true);
+    }
+    var userRes = _mapper.Map<UserDTO>(serviceRes.Data);
+    res.UpdateValues(serviceRes.Status, serviceRes.Message, userRes);
+    switch (res.Status)
+    {
+      case "200":
+        return Ok(res);
+      case "400":
+        return BadRequest(res);
+      case "404":
+        return NotFound(res);
+      default:
+        return StatusCode(StatusCodes.Status500InternalServerError, res);
+    }
+  }
+
+  [Authorize(Policy = "NotStudent")]
+  [HttpPut("update-password/{dni}")]
+  public async Task<ActionResult<ResponseOne<UserDTO>>> UpdateWithPassword(string dni, UserDTOWithPassword userDTO)
+  {
+    var res = new ResponseOne<UserDTO> { Status = "", Message = "", Data = null };
+    ResponseOne<User> serviceRes;
+    var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+    var userDNI = User.FindFirst("dni")?.Value;
+    if (userRole == null || userDNI == null)
+    {
+      return BadRequest();
+    }
+    if (userRole.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+    {
+      serviceRes = await _userService.UpdateWithPassword(dni, userDTO, userDNI, false);
+    }
+    else
+    {
+      serviceRes = await _userService.UpdateWithPassword(dni, userDTO, userDNI, true);
     }
     var userRes = _mapper.Map<UserDTO>(serviceRes.Data);
     res.UpdateValues(serviceRes.Status, serviceRes.Message, userRes);

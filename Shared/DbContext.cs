@@ -24,7 +24,7 @@ public sealed class DbContextLF : DbContext
       tb.Property(us => us.Active).HasDefaultValue(true);
       tb.HasOne(us => us.User).WithMany(u => u.UserServices).HasForeignKey(us => us.UserId);
       tb.HasOne(us => us.Service).WithMany(s => s.UserServices).HasForeignKey(us => us.ServiceId);
-      tb.HasMany(us => us.Invoices).WithOne(i => i.UserService).HasForeignKey(i => new { i.UserId, i.ServiceId }).OnDelete(DeleteBehavior.Cascade);
+      tb.HasMany(us => us.Invoices).WithOne(i => i.UserService).HasForeignKey(i => new { i.UserId, i.ServiceId }).OnDelete(DeleteBehavior.NoAction);
     });
     builder.Entity<Role>(tb =>
     {
@@ -87,8 +87,8 @@ public sealed class DbContextLF : DbContext
     {
       tb.Property(s => s.Name).HasColumnType("varchar(30)");
       tb.Property(s => s.Details).HasColumnType("varchar(200)");
-      tb.HasMany(s => s.Prices).WithOne(p => p.Service).HasForeignKey(p => p.ServiceId);
-      tb.HasMany(s => s.UserServices).WithOne(usser => usser.Service).HasForeignKey(usser => usser.ServiceId);
+      tb.HasMany(s => s.Prices).WithOne(p => p.Service).HasForeignKey(p => p.ServiceId).OnDelete(DeleteBehavior.Cascade);
+      tb.HasMany(s => s.UserServices).WithOne(usser => usser.Service).HasForeignKey(usser => usser.ServiceId).OnDelete(DeleteBehavior.Restrict);
       tb.HasOne(s => s.Academy).WithMany(a => a.Services).HasForeignKey(s => s.AcademyId);
     });
     builder.Entity<Price>(tb =>
@@ -113,6 +113,9 @@ public sealed class DbContextLF : DbContext
       tb.Property(i => i.DueDate).HasColumnType("datetime(0)");
       tb.Property(i => i.Paid).HasDefaultValue(false);
       tb.Property(i => i.PaymentDate).HasDefaultValue(null);
+      tb.HasOne(i => i.UserService).WithMany(us => us.Invoices)
+        .HasForeignKey(i => new { i.UserId, i.ServiceId })
+        .OnDelete(DeleteBehavior.Restrict); // No borra las facturas
     });
   }
 }

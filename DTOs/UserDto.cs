@@ -9,7 +9,16 @@ public class UserDTO
   public required string Name { get; set; }
   public required string LastName { get; set; }
   public required DateTime BirthDate { get; set; }
+  public int BeltId { get; set; }
+  public int AcademyId { get; set; }
+}
+public class UserDTOWithPassword
+{
+  public required string DNI { get; set; }
+  public required string Name { get; set; }
+  public required string LastName { get; set; }
   public required string Password { get; set; }
+  public required DateTime BirthDate { get; set; }
   public int BeltId { get; set; }
   public int AcademyId { get; set; }
 }

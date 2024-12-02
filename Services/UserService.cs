@@ -184,7 +184,7 @@ public class UserService(DbContextLF dbContext, IMapper mapper)
     }
   }
 
-  public async Task<ResponseOne<User>> Update(UserDTO userDTO, string instructorDNI, bool onlyYourAcademy)
+  public async Task<ResponseOne<User>> Update(string dni, UserDTO userDTO, string instructorDNI, bool onlyYourAcademy)
   {
     User? Instructor;
     User? User;
@@ -192,7 +192,7 @@ public class UserService(DbContextLF dbContext, IMapper mapper)
     using var transaction = await _dbContext.Database.BeginTransactionAsync();
     try
     {
-      User = await _dbContext.Users.FirstOrDefaultAsync(u => u.DNI == userDTO.DNI);
+      User = await _dbContext.Users.FirstOrDefaultAsync(u => u.DNI == dni);
       if (User == null)
       {
         res.UpdateValues("404", "User not Found", null);
@@ -203,10 +203,14 @@ public class UserService(DbContextLF dbContext, IMapper mapper)
         Instructor = await _dbContext.Users.FirstOrDefaultAsync(u => u.DNI == instructorDNI);
         if (Instructor != null)
         {
+          if (User.AcademyId != userDTO.AcademyId)
+          {
+            res.UpdateValues("400", "No puede cambiar el alumno de academia, para hacerlo debe tener permisos de administrador", null);
+            return res;
+          }
           if (User.AcademyId == Instructor.AcademyId)
           {
             _mapper.Map<UserDTO, User>(userDTO, User);
-            User.Password = EncryptPassword(User, userDTO.Password);
             await _dbContext.SaveChangesAsync();
             await transaction.CommitAsync();
             res.UpdateValues("200", "User Updated successfully", User);
@@ -227,6 +231,69 @@ public class UserService(DbContextLF dbContext, IMapper mapper)
       else
       {
         _mapper.Map<UserDTO, User>(userDTO, User);
+        await _dbContext.SaveChangesAsync();
+        await transaction.CommitAsync();
+        res.UpdateValues("200", "User Updated successfully", User);
+        return res;
+      }
+    }
+    catch (Exception ex)
+    {
+      await transaction.RollbackAsync();
+      Console.WriteLine(ex.Message);
+      res.UpdateValues("500", "Ocurrio un Error inesperado", null);
+      return res;
+    }
+  }
+
+  public async Task<ResponseOne<User>> UpdateWithPassword(string dni, UserDTOWithPassword userDTO, string instructorDNI, bool onlyYourAcademy)
+  {
+    User? Instructor;
+    User? User;
+    var res = new ResponseOne<User> { Status = "", Message = "", Data = null };
+    using var transaction = await _dbContext.Database.BeginTransactionAsync();
+    try
+    {
+      User = await _dbContext.Users.FirstOrDefaultAsync(u => u.DNI == userDTO.DNI);
+      if (User == null)
+      {
+        res.UpdateValues("404", "User not Found", null);
+        return res;
+      }
+      if (onlyYourAcademy)
+      {
+        Instructor = await _dbContext.Users.FirstOrDefaultAsync(u => u.DNI == instructorDNI);
+        if (Instructor != null)
+        {
+          if (User.AcademyId != userDTO.AcademyId)
+          {
+            res.UpdateValues("400", "No puede cambiar el alumno de academia, para hacerlo debe tener permisos de administrador", null);
+            return res;
+          }
+          if (User.AcademyId == Instructor.AcademyId)
+          {
+            _mapper.Map<UserDTOWithPassword, User>(userDTO, User);
+            User.Password = EncryptPassword(User, userDTO.Password);
+            await _dbContext.SaveChangesAsync();
+            await transaction.CommitAsync();
+            res.UpdateValues("200", "User Updated successfully", User);
+            return res;
+          }
+          else
+          {
+            res.UpdateValues("400", "No tienes permiso para editar ese usuario", null);
+            return res;
+          }
+        }
+        else
+        {
+          res.UpdateValues("400", "Instructor not found", null);
+          return res;
+        }
+      }
+      else
+      {
+        _mapper.Map<UserDTOWithPassword, User>(userDTO, User);
         User.Password = EncryptPassword(User, userDTO.Password);
         await _dbContext.SaveChangesAsync();
         await transaction.CommitAsync();

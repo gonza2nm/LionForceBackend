@@ -117,10 +117,15 @@ public class ServiceService(DbContextLF dbContext, IMapper mapper)
         var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.DNI == instructorDNI);
         if (user == null)
         {
-          res.UpdateValues("400", "No puede buscar servicio que es de otra academia", null);
+          res.UpdateValues("400", "No se identifico al usuario", null);
           return res;
         }
         service = await _dbContext.Services.Include(s => s.Prices.Where(p => p.UntilDate == null)).FirstOrDefaultAsync(s => s.Id == id && s.AcademyId == user.AcademyId);
+        if (service == null)
+        {
+          res.UpdateValues("400", "No puede buscar servicio que es de otra academia", null);
+          return res;
+        }
       }
       if (service == null)
       {
