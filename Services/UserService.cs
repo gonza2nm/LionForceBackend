@@ -114,18 +114,23 @@ public class UserService(DbContextLF dbContext, IMapper mapper)
     var res = new ResponseOne<User> { Data = null, Message = "", Status = "" };
     try
     {
-      User? user = null;
+      User? User = null;
       User? instructor = null;
       if (instructorDNI == null)
       {
-        user = await _dbContext.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.DNI == dni);
+        User = await _dbContext.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.DNI == dni);
       }
       else
       {
         instructor = await _dbContext.Users.FirstOrDefaultAsync(u => u.DNI == instructorDNI);
         if (instructor != null)
         {
-          user = await _dbContext.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.DNI == dni && u.AcademyId == instructor.AcademyId);
+          User = await _dbContext.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.DNI == dni);
+          if (User != null && User.AcademyId != instructor.AcademyId)
+          {
+            res.UpdateValues("403", "No puede pedir datos de alumnos que no sean de su academia", null);
+            return res;
+          }
         }
         else
         {
@@ -133,17 +138,16 @@ public class UserService(DbContextLF dbContext, IMapper mapper)
           return res;
         }
       }
-      if (user != null)
+      if (User == null)
       {
-        if (user.Role.Name.Equals("Admin") && user.Role.Name.Equals("Supervisor") && instructor != null)
-        {
-          res.UpdateValues("403", "Forbidden", null);
-        }
-        res.UpdateValues("200", "Found User", user);
+        res.UpdateValues("404", "No se encontro un usuario con ese dni", null);
         return res;
       }
-      res.UpdateValues("404", "User Not Found", null);
-      return res;
+      else
+      {
+        res.UpdateValues("200", "Found User", User);
+        return res;
+      }
     }
     catch (Exception ex)
     {
