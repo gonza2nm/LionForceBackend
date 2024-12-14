@@ -67,7 +67,7 @@ builder.Services.AddAuthorization(options =>
 });
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<ServiceService>();
-
+builder.Services.AddScoped<InvoiceService>();
 
 var app = builder.Build();
 
