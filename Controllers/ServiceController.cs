@@ -5,7 +5,6 @@ using lion_force_be.DTOs;
 using lion_force_be.Models;
 using lion_force_be.Services;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 
 namespace lion_force_be.Controllers;

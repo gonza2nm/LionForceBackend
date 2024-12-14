@@ -1,5 +1,3 @@
-using lion_force_be.Models;
-
 namespace lion_force_be.DTOs;
 
 public class ServiceDTO
