@@ -4,5 +4,7 @@ public class InvoiceDTO
   public required DateTime? PaymentDate { get; set; }
   public required DateTime DueDate { get; set; }
   public required int UserId { get; set; }
+  public required decimal Discount { get; set; }
   public required int ServiceId { get; set; }
+  public required decimal Total { get; set; }
 }

@@ -8,6 +8,8 @@ public class Invoice : BaseEntity
   public DateTime? PaymentDate { get; set; }
   public DateTime DueDate { get; set; }
   public int UserId { get; set; }
+  public decimal Discount { get; set; }
   public int ServiceId { get; set; }
+  public decimal Total { get; set; }
   public UserService UserService { get; set; } = null!;
 }

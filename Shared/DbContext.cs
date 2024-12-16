@@ -113,6 +113,8 @@ public sealed class DbContextLF : DbContext
       tb.Property(i => i.DueDate).HasColumnType("datetime(0)");
       tb.Property(i => i.Paid).HasDefaultValue(false);
       tb.Property(i => i.PaymentDate).HasDefaultValue(null);
+      tb.Property(i => i.Discount).HasPrecision(18, 2).HasDefaultValue(1);
+      tb.Property(i => i.Total).HasPrecision(18, 2);
       tb.HasOne(i => i.UserService).WithMany(us => us.Invoices)
         .HasForeignKey(i => new { i.UserId, i.ServiceId })
         .OnDelete(DeleteBehavior.Restrict); // No borra las facturas

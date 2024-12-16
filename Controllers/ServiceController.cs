@@ -67,7 +67,7 @@ public class ServiceController(ServiceService service, IMapper mapper) : Control
   }
 
   [Authorize(Policy = "NotStudent")]
-  [HttpGet("byacademy/{academyid}")]
+  [HttpGet("academy/{academyid}")]
   public async Task<ActionResult<ResponseList<ServiceDTO>>> GetAllByAcademy(int academyid)
   {
     bool ControlRole = false;
