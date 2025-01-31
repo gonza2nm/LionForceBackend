@@ -13,9 +13,9 @@ public class UserService(DbContextLF dbContext, IMapper mapper)
   private readonly PasswordHasher<User> _passwordHasher = new PasswordHasher<User>();
   private readonly IMapper _mapper = mapper;
 
-  public async Task<ResponseOne<User>> Add(UserRequestDTO user, string userRequestRol)
+  public async Task<ServiceResponseOne<User>> Add(UserRequestDTO user, string userRequestRol)
   {
-    var res = new ResponseOne<User> { Status = "", Message = "", Data = null };
+    var res = new ServiceResponseOne<User> { StatusCode = "", Message = "", Data = null };
     using var transaction = await _dbContext.Database.BeginTransactionAsync();
     try
     {
@@ -85,9 +85,9 @@ public class UserService(DbContextLF dbContext, IMapper mapper)
   }
 
 
-  public async Task<ResponseOne<User>> GetMyData(string dni)
+  public async Task<ServiceResponseOne<User>> GetMyData(string dni)
   {
-    var res = new ResponseOne<User> { Data = null, Message = "", Status = "" };
+    var res = new ServiceResponseOne<User> { Data = null, Message = "", StatusCode = "" };
     try
     {
       var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.DNI == dni);
@@ -109,9 +109,9 @@ public class UserService(DbContextLF dbContext, IMapper mapper)
 
 
   //se envia dni del usuario y si el rol es instructor tambien el del instructor para solo consultar sobre sus alumnos
-  public async Task<ResponseOne<User>> GetOne(string dni, string? instructorDNI)
+  public async Task<ServiceResponseOne<User>> GetOne(string dni, string? instructorDNI)
   {
-    var res = new ResponseOne<User> { Data = null, Message = "", Status = "" };
+    var res = new ServiceResponseOne<User> { Data = null, Message = "", StatusCode = "" };
     try
     {
       User? User = null;
@@ -157,9 +157,9 @@ public class UserService(DbContextLF dbContext, IMapper mapper)
     }
   }
 
-  public async Task<ResponseList<User>> GetUsers(int? academyId, bool onlyStudents)
+  public async Task<ServiceResponseList<User>> GetUsers(int? academyId, bool onlyStudents)
   {
-    var res = new ResponseList<User> { Status = "", Message = "", Data = [] };
+    var res = new ServiceResponseList<User> { StatusCode = "", Message = "", Data = [] };
     try
     {
       List<User>? users;
@@ -188,11 +188,11 @@ public class UserService(DbContextLF dbContext, IMapper mapper)
     }
   }
 
-  public async Task<ResponseOne<User>> Update(string dni, UserDTO userDTO, string instructorDNI, bool onlyYourAcademy)
+  public async Task<ServiceResponseOne<User>> Update(string dni, UserDTO userDTO, string instructorDNI, bool onlyYourAcademy)
   {
     User? Instructor;
     User? User;
-    var res = new ResponseOne<User> { Status = "", Message = "", Data = null };
+    var res = new ServiceResponseOne<User> { StatusCode = "", Message = "", Data = null };
     using var transaction = await _dbContext.Database.BeginTransactionAsync();
     try
     {
@@ -250,11 +250,11 @@ public class UserService(DbContextLF dbContext, IMapper mapper)
     }
   }
 
-  public async Task<ResponseOne<User>> UpdateWithPassword(string dni, UserDTOWithPassword userDTO, string instructorDNI, bool onlyYourAcademy)
+  public async Task<ServiceResponseOne<User>> UpdateWithPassword(string dni, UserDTOWithPassword userDTO, string instructorDNI, bool onlyYourAcademy)
   {
     User? Instructor;
     User? User;
-    var res = new ResponseOne<User> { Status = "", Message = "", Data = null };
+    var res = new ServiceResponseOne<User> { StatusCode = "", Message = "", Data = null };
     using var transaction = await _dbContext.Database.BeginTransactionAsync();
     try
     {
@@ -314,9 +314,9 @@ public class UserService(DbContextLF dbContext, IMapper mapper)
     }
   }
 
-  public async Task<ResponseOne<User>> Delete(string dni)
+  public async Task<ServiceResponseOne<User>> Delete(string dni)
   {
-    var res = new ResponseOne<User> { Status = "", Message = "", Data = null };
+    var res = new ServiceResponseOne<User> { StatusCode = "", Message = "", Data = null };
     using var transaction = await _dbContext.Database.BeginTransactionAsync();
     try
     {

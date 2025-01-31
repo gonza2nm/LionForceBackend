@@ -23,37 +23,37 @@ public class UserController(UserService userService, JwtTokenService authService
   [Route("signup")]
   public async Task<ActionResult<ResponseOne<UserDTO>>> SignUp(UserRequestDTO userBody)
   {
-    var res = new ResponseOne<UserDTO> { Status = "", Message = "", Data = null };
+    var res = new ResponseOne<UserDTO> { Message = "", Data = null };
     var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
     if (userRole == null)
     {
-      res.UpdateValues("400", "Bad Request", null);
+      res.UpdateValues("Bad Request", null);
       return BadRequest(res);
     }
     if (userBody.Password.Length < 6)
     {
-      res.UpdateValues("400", "La contraseña debe ser mayor a 6 caracteres", null);
+      res.UpdateValues("La contraseña debe ser mayor a 6 caracteres", null);
+      return BadRequest(res);
     }
     else
     {
       var serviceRes = await _userService.Add(userBody, userRole);
       var userDTO = _mapper.Map<UserDTO>(serviceRes.Data);
-      res.UpdateValues(serviceRes.Status, serviceRes.Message, userDTO);
+      res.UpdateValues(serviceRes.Message, userDTO);
+      switch (serviceRes.StatusCode)
+      {
+        case "201":
+          return StatusCode(StatusCodes.Status201Created, res);
+        case "400":
+          return BadRequest(res);
+        case "403":
+          return StatusCode(StatusCodes.Status403Forbidden, res);
+        case "409":
+          return StatusCode(StatusCodes.Status409Conflict, res);
+        default:
+          return StatusCode(StatusCodes.Status500InternalServerError, res);
+      }
     }
-    switch (res.Status)
-    {
-      case "201":
-        return StatusCode(StatusCodes.Status201Created, res);
-      case "400":
-        return BadRequest(res);
-      case "403":
-        return StatusCode(StatusCodes.Status403Forbidden, res);
-      case "409":
-        return StatusCode(StatusCodes.Status409Conflict, res);
-      default:
-        return StatusCode(StatusCodes.Status500InternalServerError, res);
-    }
-
   }
 
   [AllowAnonymous]
@@ -61,7 +61,7 @@ public class UserController(UserService userService, JwtTokenService authService
   [Route("login")]
   public async Task<ActionResult<ResponseOne<UserDTO>>> Login(UserLoginDTO userBody)
   {
-    var res = new ResponseOne<UserDTO> { Data = null, Status = "", Message = "" };
+    var res = new ResponseOne<UserDTO> { Data = null, Message = "" };
     var user = await _userService.Auth(userBody.DNI);
     if (user == null || !_userService.VerifyUserPassword(user, userBody.Password))
     {
@@ -69,7 +69,7 @@ public class UserController(UserService userService, JwtTokenService authService
     }
     if (user.Role.Name.Equals("Student", StringComparison.OrdinalIgnoreCase))
     {
-      res.UpdateValues("403", "No tienes permiso para acceder a este login", null);
+      res.UpdateValues("No tienes permiso para acceder a este login", null);
       return Unauthorized(res);
     }
     var token = _authService.GenerateToken(user.DNI, user.Name, user.Role.Name);
@@ -82,7 +82,7 @@ public class UserController(UserService userService, JwtTokenService authService
     };
     Response.Cookies.Append("authToken", token, cookieOptions);
     var userDTO = _mapper.Map<UserDTO>(user);
-    res.UpdateValues("200", "Usuario logeado correctamente", userDTO);
+    res.UpdateValues("Usuario logeado correctamente", userDTO);
     return Ok(res);
   }
 
@@ -91,7 +91,7 @@ public class UserController(UserService userService, JwtTokenService authService
   [Route("students/login/")]
   public async Task<ActionResult> LoginStudents(UserLoginDTO userBody)
   {
-    var res = new ResponseOne<UserDTO> { Data = null, Status = "", Message = "" };
+    var res = new ResponseOne<UserDTO> { Data = null, Message = "" };
     var user = await _userService.Auth(userBody.DNI);
     if (user == null || !_userService.VerifyUserPassword(user, userBody.Password))
     {
@@ -109,12 +109,12 @@ public class UserController(UserService userService, JwtTokenService authService
       };
       Response.Cookies.Append("authToken", token, cookieOptions);
       var userDTO = _mapper.Map<UserDTO>(user);
-      res.UpdateValues("200", "Usuario logeado correctamente", userDTO);
-      return Ok();
+      res.UpdateValues("Usuario logeado correctamente", userDTO);
+      return Ok(res);
     }
     else
     {
-      res.UpdateValues("403", "No tienes permiso para acceder tu rol", null);
+      res.UpdateValues("No tienes permiso para acceder tu rol", null);
       return Unauthorized(res);
     }
   }
@@ -148,14 +148,14 @@ public class UserController(UserService userService, JwtTokenService authService
   public async Task<ActionResult<ResponseList<UserDTO>>> GetUsers()
   {
     var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
-    var res = new ResponseList<UserDTO> { Status = "", Message = "", Data = [] };
+    var res = new ResponseList<UserDTO> { Message = "", Data = [] };
     if (userRole == null)
     {
       return BadRequest();
     }
     var serviceRes = await _userService.GetUsers(null, false);
     var usersDTO = _mapper.Map<List<UserDTO>>(serviceRes.Data);
-    res.UpdateValues(serviceRes.Status, serviceRes.Message, usersDTO);
+    res.UpdateValues(serviceRes.Message, usersDTO);
     return Ok(res);
   }
 
@@ -164,10 +164,10 @@ public class UserController(UserService userService, JwtTokenService authService
   public async Task<ActionResult<ResponseList<UserDTO>>> GetUsersByAcademy()
   {
     var userDNI = User.FindFirst("dni")?.Value;
-    var res = new ResponseList<UserDTO> { Status = "", Message = "", Data = [] };
+    var res = new ResponseList<UserDTO> { Message = "", Data = [] };
     if (userDNI == null)
     {
-      res.UpdateValues("400", "No se identifico el usuario", []);
+      res.UpdateValues("No se identifico el usuario", []);
       return BadRequest(res);
     }
     var resInstructor = await _userService.GetMyData(userDNI);
@@ -177,7 +177,7 @@ public class UserController(UserService userService, JwtTokenService authService
     }
     var serviceRes = await _userService.GetUsers(resInstructor.Data.AcademyId, false);
     var usersDTO = _mapper.Map<List<UserDTO>>(serviceRes.Data);
-    res.UpdateValues(serviceRes.Status, serviceRes.Message, usersDTO);
+    res.UpdateValues(serviceRes.Message, usersDTO);
     return Ok(res);
   }
 
@@ -186,10 +186,10 @@ public class UserController(UserService userService, JwtTokenService authService
   public async Task<ActionResult<ResponseList<UserDTO>>> GetStudentsByAcademy()
   {
     var userDNI = User.FindFirst("dni")?.Value;
-    var res = new ResponseList<UserDTO> { Status = "", Message = "", Data = [] };
+    var res = new ResponseList<UserDTO> { Message = "", Data = [] };
     if (string.IsNullOrEmpty(userDNI))
     {
-      res.UpdateValues("400", $"No se identifico el usuario dni:{userDNI}", []);
+      res.UpdateValues($"No se identifico el usuario dni:{userDNI}", []);
       return BadRequest(res);
     }
     var resInstructor = await _userService.GetMyData(userDNI);
@@ -199,7 +199,7 @@ public class UserController(UserService userService, JwtTokenService authService
     }
     var serviceRes = await _userService.GetUsers(resInstructor.Data.AcademyId, true);
     var usersDTO = _mapper.Map<List<UserDTO>>(serviceRes.Data);
-    res.UpdateValues(serviceRes.Status, serviceRes.Message, usersDTO);
+    res.UpdateValues(serviceRes.Message, usersDTO);
     return Ok(res);
   }
 
@@ -210,8 +210,8 @@ public class UserController(UserService userService, JwtTokenService authService
   {
     var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
     var userDNI = User.FindFirst("dni")?.Value;
-    var res = new ResponseOne<UserDTO> { Status = "", Message = "", Data = null };
-    ResponseOne<User> serviceRes;
+    var res = new ResponseOne<UserDTO> { Message = "", Data = null };
+    ServiceResponseOne<User> serviceRes;
     if (userRole == null || userDNI == null)
     {
       return BadRequest();
@@ -229,14 +229,14 @@ public class UserController(UserService userService, JwtTokenService authService
       var instructorDNI = User.FindFirst("dni")?.Value;
       if (instructorDNI == null)
       {
-        res.UpdateValues("400", "Ocurrio un error al identificar el rol", null);
+        res.UpdateValues("Ocurrio un error al identificar el rol", null);
         return BadRequest(res);
       }
       serviceRes = await _userService.GetOne(dni, instructorDNI);
     }
     var userDTO = _mapper.Map<UserDTO>(serviceRes.Data);
-    res.UpdateValues(serviceRes.Status, serviceRes.Message, userDTO);
-    switch (res.Status)
+    res.UpdateValues(serviceRes.Message, userDTO);
+    switch (serviceRes.StatusCode)
     {
       case "200":
         return Ok(res);
@@ -255,8 +255,8 @@ public class UserController(UserService userService, JwtTokenService authService
   [HttpPut("{dni}")]
   public async Task<ActionResult<ResponseOne<UserDTO>>> Update(string dni, UserDTO userDTO)
   {
-    var res = new ResponseOne<UserDTO> { Status = "", Message = "", Data = null };
-    ResponseOne<User> serviceRes;
+    var res = new ResponseOne<UserDTO> { Message = "", Data = null };
+    ServiceResponseOne<User> serviceRes;
     var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
     var userDNI = User.FindFirst("dni")?.Value;
     if (userRole == null || userDNI == null)
@@ -272,8 +272,8 @@ public class UserController(UserService userService, JwtTokenService authService
       serviceRes = await _userService.Update(dni, userDTO, userDNI, true);
     }
     var userRes = _mapper.Map<UserDTO>(serviceRes.Data);
-    res.UpdateValues(serviceRes.Status, serviceRes.Message, userRes);
-    switch (res.Status)
+    res.UpdateValues(serviceRes.Message, userRes);
+    switch (serviceRes.StatusCode)
     {
       case "200":
         return Ok(res);
@@ -290,8 +290,8 @@ public class UserController(UserService userService, JwtTokenService authService
   [HttpPut("update-password/{dni}")]
   public async Task<ActionResult<ResponseOne<UserDTO>>> UpdateWithPassword(string dni, UserDTOWithPassword userDTO)
   {
-    var res = new ResponseOne<UserDTO> { Status = "", Message = "", Data = null };
-    ResponseOne<User> serviceRes;
+    var res = new ResponseOne<UserDTO> { Message = "", Data = null };
+    ServiceResponseOne<User> serviceRes;
     var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
     var userDNI = User.FindFirst("dni")?.Value;
     if (userRole == null || userDNI == null)
@@ -307,8 +307,8 @@ public class UserController(UserService userService, JwtTokenService authService
       serviceRes = await _userService.UpdateWithPassword(dni, userDTO, userDNI, true);
     }
     var userRes = _mapper.Map<UserDTO>(serviceRes.Data);
-    res.UpdateValues(serviceRes.Status, serviceRes.Message, userRes);
-    switch (res.Status)
+    res.UpdateValues(serviceRes.Message, userRes);
+    switch (serviceRes.StatusCode)
     {
       case "200":
         return Ok(res);
@@ -326,7 +326,7 @@ public class UserController(UserService userService, JwtTokenService authService
   public async Task<ActionResult> Delete(string dni)
   {
     var res = await _userService.Delete(dni);
-    switch (res.Status)
+    switch (res.StatusCode)
     {
       case "200": return Ok(res);
       case "404": return NotFound(res);
