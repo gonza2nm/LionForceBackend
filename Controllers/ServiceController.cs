@@ -22,25 +22,26 @@ public class ServiceController(ServiceService service, IMapper mapper) : Control
   public async Task<ActionResult<ResponseOne<ServiceDTO>>> Add(ServiceRequestDTO serviceRDTO)
   {
     bool isAdmin = false;
-    var res = new ResponseOne<ServiceDTO> { Status = "", Message = "", Data = null };
+    var res = new ResponseOne<ServiceDTO> { Message = "", Data = null };
+    ServiceResponseOne<ServiceDTO> serviceRes;
     var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
     if (userRole == null)
     {
-      res.UpdateValues("400", "No se identifico su authorizacion", null);
+      res.UpdateValues("No se identifico su authorizacion", null);
       return BadRequest(res);
     }
     var userDNI = User.FindFirst("dni")?.Value;
     if (userDNI == null)
     {
-      res.UpdateValues("400", "No se pudo identificar al usuario", null);
+      res.UpdateValues("No se pudo identificar al usuario", null);
       return BadRequest(res);
     }
     if (userRole.Equals("Admin", StringComparison.OrdinalIgnoreCase))
     {
       isAdmin = true;
     }
-    res = await _service.Add(serviceRDTO, userDNI, isAdmin);
-    switch (res.Status)
+    serviceRes = await _service.Add(serviceRDTO, userDNI, isAdmin);
+    switch (serviceRes.StatusCode)
     {
       case "201":
         return StatusCode(StatusCodes.Status201Created, res);
@@ -56,10 +57,10 @@ public class ServiceController(ServiceService service, IMapper mapper) : Control
   [HttpGet]
   public async Task<ActionResult<ResponseList<ServiceDTO>>> GetAll()
   {
-    ResponseList<Service> serviceRes = await _service.GetAll();
+    ServiceResponseList<Service> serviceRes = await _service.GetAll();
     var servicesDTO = _mapper.Map<List<ServiceDTO>>(serviceRes.Data);
-    var res = new ResponseList<ServiceDTO> { Status = serviceRes.Status, Message = serviceRes.Message, Data = servicesDTO };
-    switch (res.Status)
+    var res = _mapper.Map<ResponseList<ServiceDTO>>(serviceRes);
+    switch (serviceRes.StatusCode)
     {
       case "200": return Ok(res);
       default: return StatusCode(StatusCodes.Status500InternalServerError, res);
@@ -71,27 +72,28 @@ public class ServiceController(ServiceService service, IMapper mapper) : Control
   public async Task<ActionResult<ResponseList<ServiceDTO>>> GetAllByAcademy(int academyid)
   {
     bool ControlRole = false;
-    var res = new ResponseList<ServiceDTO> { Status = "", Message = "", Data = [] };
+    ServiceResponseList<Service> serviceRes;
+    var res = new ResponseList<ServiceDTO> { Message = "", Data = [] };
     var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
     if (userRole == null)
     {
-      res.UpdateValues("400", "No se identifico su authorizacion", []);
+      res.UpdateValues("No se identifico su authorizacion", []);
       return BadRequest(res);
     }
     var userDNI = User.FindFirst("dni")?.Value;
     if (userDNI == null)
     {
-      res.UpdateValues("400", "No se pudo identificar al usuario", []);
+      res.UpdateValues("No se pudo identificar al usuario", []);
       return BadRequest(res);
     }
     if (userRole.Equals("Admin", StringComparison.OrdinalIgnoreCase) || userRole.Equals("Supervisor", StringComparison.OrdinalIgnoreCase))
     {
       ControlRole = true;
     }
-    var serviceRes = await _service.GetAllByAcademy(userDNI, academyid, ControlRole);
+    serviceRes = await _service.GetAllByAcademy(userDNI, academyid, ControlRole);
     var servicesDTO = _mapper.Map<List<ServiceDTO>>(serviceRes.Data);
-    res.UpdateValues(serviceRes.Status, serviceRes.Message, servicesDTO);
-    switch (res.Status)
+    res.UpdateValues(serviceRes.Message, servicesDTO);
+    switch (serviceRes.StatusCode)
     {
       case "200": return Ok(res);
       case "400": return BadRequest(res);
@@ -103,28 +105,29 @@ public class ServiceController(ServiceService service, IMapper mapper) : Control
   [HttpGet("{id}")]
   public async Task<ActionResult<ResponseOne<ServiceDTO>>> GetOne(int id)
   {
+    ServiceResponseOne<Service> serviceRes;
+    var res = new ResponseOne<ServiceDTO> { Message = "", Data = null };
     bool isAdmin = false;
-    var res = new ResponseOne<ServiceDTO> { Status = "", Message = "", Data = null };
     var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
     if (userRole == null)
     {
-      res.UpdateValues("400", "No se identifico su authorizacion", null);
+      res.UpdateValues("No se identifico su authorizacion", null);
       return BadRequest(res);
     }
     var userDNI = User.FindFirst("dni")?.Value;
     if (userDNI == null)
     {
-      res.UpdateValues("400", "No se pudo identificar al usuario", null);
+      res.UpdateValues("No se pudo identificar al usuario", null);
       return BadRequest(res);
     }
     if (userRole.Equals("Admin", StringComparison.OrdinalIgnoreCase))
     {
       isAdmin = true;
     }
-    var serviceRes = await _service.GetOne(userDNI, id, isAdmin);
+    serviceRes = await _service.GetOne(userDNI, id, isAdmin);
     var serviceDTO = _mapper.Map<ServiceDTO>(serviceRes.Data);
-    res.UpdateValues(serviceRes.Status, serviceRes.Message, serviceDTO);
-    switch (res.Status)
+    res.UpdateValues(serviceRes.Message, serviceDTO);
+    switch (serviceRes.StatusCode)
     {
       case "200": return Ok(res);
       case "400": return BadRequest(res);
@@ -140,10 +143,10 @@ public class ServiceController(ServiceService service, IMapper mapper) : Control
     bool isAdmin = false;
     var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
     var userDNI = User.FindFirst("dni")?.Value;
-    var res = new ResponseOne<ServiceDTO> { Status = "", Message = "", Data = null };
+    var res = new ResponseOne<ServiceDTO> { Message = "", Data = null };
     if (userRole == null || userDNI == null)
     {
-      res.UpdateValues("400", "Hubo un Problema al identificar el usuario", null);
+      res.UpdateValues("Hubo un Problema al identificar el usuario", null);
       return BadRequest(res);
     }
     if (userRole.Equals("Admin", StringComparison.OrdinalIgnoreCase))
@@ -151,8 +154,8 @@ public class ServiceController(ServiceService service, IMapper mapper) : Control
       isAdmin = true;
     }
     var serviceRes = await _service.Update(serviceToUpd, id, isAdmin, userDNI);
-    res.UpdateValues(serviceRes.Status, serviceRes.Message, null);
-    switch (res.Status)
+    res.UpdateValues(serviceRes.Message, null);
+    switch (serviceRes.StatusCode)
     {
       case "200": return Ok(res);
       case "400": return BadRequest(res);

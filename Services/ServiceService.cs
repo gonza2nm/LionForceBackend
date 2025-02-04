@@ -11,9 +11,9 @@ public class ServiceService(DbContextLF dbContext, IMapper mapper)
   public readonly DbContextLF _dbContext = dbContext;
   public readonly IMapper _mapper = mapper;
 
-  public async Task<ResponseOne<ServiceDTO>> Add(ServiceRequestDTO serviceRDTO, string instructorDNI, bool isAdmin)
+  public async Task<ServiceResponseOne<ServiceDTO>> Add(ServiceRequestDTO serviceRDTO, string instructorDNI, bool isAdmin)
   {
-    var res = new ResponseOne<ServiceDTO> { Status = "", Message = "", Data = null };
+    var res = new ServiceResponseOne<ServiceDTO> { StatusCode = "", Message = "", Data = null };
     using var transaction = await _dbContext.Database.BeginTransactionAsync();
     try
     {
@@ -52,9 +52,9 @@ public class ServiceService(DbContextLF dbContext, IMapper mapper)
     }
   }
 
-  public async Task<ResponseList<Service>> GetAll()
+  public async Task<ServiceResponseList<Service>> GetAll()
   {
-    var res = new ResponseList<Service> { Status = "", Message = "", Data = [] };
+    var res = new ServiceResponseList<Service> { StatusCode = "", Message = "", Data = [] };
     try
     {
       var services = await _dbContext.Services.Include(s => s.Prices.Where(p => p.UntilDate == null)).ToListAsync();
@@ -69,9 +69,9 @@ public class ServiceService(DbContextLF dbContext, IMapper mapper)
     }
   }
 
-  public async Task<ResponseList<Service>> GetAllByAcademy(string instructorDNI, int academyid, bool ControleRole)
+  public async Task<ServiceResponseList<Service>> GetAllByAcademy(string instructorDNI, int academyid, bool ControleRole)
   {
-    var res = new ResponseList<Service> { Status = "", Message = "", Data = [] };
+    var res = new ServiceResponseList<Service> { StatusCode = "", Message = "", Data = [] };
     List<Service> services;
     try
     {
@@ -100,9 +100,9 @@ public class ServiceService(DbContextLF dbContext, IMapper mapper)
     }
   }
 
-  public async Task<ResponseOne<Service>> GetOne(string instructorDNI, int id, bool isAdmin)
+  public async Task<ServiceResponseOne<Service>> GetOne(string instructorDNI, int id, bool isAdmin)
   {
-    var res = new ResponseOne<Service> { Status = "", Message = "", Data = null };
+    var res = new ServiceResponseOne<Service> { StatusCode = "", Message = "", Data = null };
     Service? service;
     try
     {
@@ -141,10 +141,10 @@ public class ServiceService(DbContextLF dbContext, IMapper mapper)
     }
   }
 
-  public async Task<ResponseOne<Service>> Update(ServiceUpdateDTO serviceToUpd, int id, bool isAdmin, string userDNI)
+  public async Task<ServiceResponseOne<Service>> Update(ServiceUpdateDTO serviceToUpd, int id, bool isAdmin, string userDNI)
   {
     using var transaction = await _dbContext.Database.BeginTransactionAsync();
-    var res = new ResponseOne<Service> { Status = "", Message = "", Data = null };
+    var res = new ServiceResponseOne<Service> { StatusCode = "", Message = "", Data = null };
     Service? service;
     Price? lastPrice;
     try
@@ -197,9 +197,9 @@ public class ServiceService(DbContextLF dbContext, IMapper mapper)
     }
   }
   /*
-      public async Task<ResponseOne<Service>> Delete()
-      {
-        return await true;
-      }
-      */
+    public async Task<ResponseOne<Service>> Delete()
+    {
+      return await true;
+    }
+  */
 }
